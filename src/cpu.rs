@@ -1,9 +1,9 @@
-use bytes::{Buf, BytesMut};
-
+use crate::memory::Memory;
 pub struct CPU {
     registers: [u32; 32],
     fRegisters: [f32; 32],
-    memory: BytesMut,
+    memory: Memory,
+    pc: usize
     //index: u32
 }
 
@@ -12,12 +12,16 @@ impl CPU {
     const FUNCTION_MASK: u32 = 0x0000003f;
     const IMMEDIATE_MASK: u32 = 0x0000ffff;
 
-    pub fn new(memory: BytesMut) -> CPU {
-        CPU{ registers: [0; 32], fRegisters: [0_f32; 32], memory, /*index: 0*/ }
+    pub fn new(memory: Memory) -> CPU {
+        CPU{ registers: [0; 32], fRegisters: [0_f32; 32], memory, pc: 0 /*index: 0*/ }
     }
 
     fn fetch(&mut self) -> u32 {
-        let res = self.memory.get_u32();
+        let mut instructionBytes:[u8; 4] = [0; 4];
+        for (i, v) in self.memory.getBytes(self.pc, 4).into_iter().enumerate() {
+            instructionBytes[i] = *v;
+        }
+        let res = u32::from_ne_bytes(instructionBytes);
         return res;
     }
 
@@ -73,7 +77,7 @@ impl CPU {
                 let result: u32 = u32::from_be_bytes((self.registers[parameters.0 as usize] / parameters.2 as u32).to_be_bytes());
                 self.registers[parameters.1 as usize] = result;
             },
-            
+
 
             _ => {}
         }
