@@ -25,8 +25,12 @@ impl CPU {
         return res;
     }
 
+    pub fn get_register_value(&self, i: usize) -> u32 {
+        return self.registers[i];
+    }
+
     pub fn execute(&mut self, instruction: u32) {
-        let op_code = instruction >> 26;
+        let op_code: u8 = (instruction >> 26) as u8;
         println!("{:b}", op_code);
         match op_code {
             Instruction::R => {
@@ -37,44 +41,24 @@ impl CPU {
                 let function: u8 = (instruction & CPU::FUNCTION_MASK) as u8;
                 self.alu_operation(rs, rt, rd, shift_amount, function);
             },
-            Instruction::ADD_IMMEDIATE => {
+            Instruction::ADDI => {
                 let parameters = CPU::get_r_immediate_instructions_values(instruction);
                 let result: i32 = i32::from_ne_bytes(self.registers[parameters.0 as usize].to_ne_bytes()) + i32::from_ne_bytes(parameters.2.to_ne_bytes());
                 self.registers[parameters.1 as usize] =  u32::from_ne_bytes(result.to_ne_bytes())
             },
-            Instruction::ADD_IMMEDIATE_UNSIGNED => {
+            Instruction::ADDIU => {
                 let parameters = CPU::get_r_immediate_instructions_values(instruction);
                 let result: u32 = u32::from_be_bytes((self.registers[parameters.0 as usize] + parameters.2 as u32).to_be_bytes());
                 self.registers[parameters.1 as usize] = result;
             },
-            Instruction::SUB_IMMEDIATE => {
+            Instruction::SUBI => {
                 let parameters = CPU::get_r_immediate_instructions_values(instruction);
                 let result: i32 = i32::from_ne_bytes(self.registers[parameters.0 as usize].to_ne_bytes()) - i32::from_ne_bytes(parameters.2.to_ne_bytes());
                 self.registers[parameters.1 as usize] =  u32::from_ne_bytes(result.to_ne_bytes())
             },
-            Instruction::SUB_IMMEDIATE_UNSIGNED => {
+            Instruction::SUBIU => {
                 let parameters = CPU::get_r_immediate_instructions_values(instruction);
                 let result: u32 = u32::from_be_bytes((self.registers[parameters.0 as usize] - parameters.2 as u32).to_be_bytes());
-                self.registers[parameters.1 as usize] = result;
-            },
-            Instruction::MUL_IMMEDIATE => {
-                let parameters = CPU::get_r_immediate_instructions_values(instruction);
-                let result: i32 = i32::from_ne_bytes(self.registers[parameters.0 as usize].to_ne_bytes()) * i32::from_ne_bytes(parameters.2.to_ne_bytes());
-                self.registers[parameters.1 as usize] =  u32::from_ne_bytes(result.to_ne_bytes())
-            },
-            Instruction::MUL_IMMEDIATE_UNSIGNED => {
-                let parameters = CPU::get_r_immediate_instructions_values(instruction);
-                let result: u32 = u32::from_be_bytes((self.registers[parameters.0 as usize] * parameters.2 as u32).to_be_bytes());
-                self.registers[parameters.1 as usize] = result;
-            },
-            Instruction::DIV_IMMEDIATE => {
-                let parameters = CPU::get_r_immediate_instructions_values(instruction);
-                let result: i32 = i32::from_ne_bytes(self.registers[parameters.0 as usize].to_ne_bytes()) / i32::from_ne_bytes(parameters.2.to_ne_bytes());
-                self.registers[parameters.1 as usize] =  u32::from_ne_bytes(result.to_ne_bytes())
-            },
-            Instruction::DIV_IMMEDIATE_UNSIGNED => {
-                let parameters = CPU::get_r_immediate_instructions_values(instruction);
-                let result: u32 = u32::from_be_bytes((self.registers[parameters.0 as usize] / parameters.2 as u32).to_be_bytes());
                 self.registers[parameters.1 as usize] = result;
             },
 
@@ -90,56 +74,228 @@ impl CPU {
         return (rs, rd, immediate);
     }
 
-    pub fn get_register_value(&self, v: u8) -> u32 {
-        if v >= 32 {
-            panic!("This register does not exist");
+    fn alu_operation(&mut self, rs:u8, rt:u8, rd:u8, shift_amount: u8, function: u8) {
+        if rd == 0 {
+            panic!("You cannot write on the zero register");
         }
-        return self.registers[v as usize];
+
+        match function {
+            Function::ADD => {
+                let rs_value = i32::from_ne_bytes(self.registers[rs as usize].to_ne_bytes());
+                let rt_value = i32::from_ne_bytes(self.registers[rt as usize].to_ne_bytes());
+                let result: i32 = (rs_value + rt_value) << shift_amount;
+                self.registers[rd as usize] =  u32::from_ne_bytes(result.to_ne_bytes())
+            },
+            Function::ADDU => {
+                let rs_value = self.registers[rs as usize];
+                let rt_value = self.registers[rt as usize];
+                let result = (rs_value + rt_value) << shift_amount;
+                self.registers[rd as usize] = result;
+            },
+            Function::SUB => {
+                let rs_value = i32::from_ne_bytes(self.registers[rs as usize].to_ne_bytes());
+                let rt_value = i32::from_ne_bytes(self.registers[rt as usize].to_ne_bytes());
+                let result: i32 = (rs_value - rt_value) << shift_amount;
+                self.registers[rd as usize] =  u32::from_ne_bytes(result.to_ne_bytes())
+            },
+            Function::SUBU => {
+                let rs_value = self.registers[rs as usize];
+                let rt_value = self.registers[rt as usize];
+                let result = (rs_value - rt_value) << shift_amount;
+                self.registers[rd as usize] = result;
+            },
+            Function::MULT => {
+                let rs_value = i32::from_ne_bytes(self.registers[rs as usize].to_ne_bytes());
+                let rt_value = i32::from_ne_bytes(self.registers[rt as usize].to_ne_bytes());
+                let result: i32 = (rs_value * rt_value) << shift_amount;
+                self.registers[rd as usize] =  u32::from_ne_bytes(result.to_ne_bytes())
+            },
+            Function::MULTU => {
+                let rs_value = self.registers[rs as usize];
+                let rt_value = self.registers[rt as usize];
+                let result = (rs_value * rt_value) << shift_amount;
+                self.registers[rd as usize] = result;
+            },
+            Function::DIV => {
+                let rs_value = i32::from_ne_bytes(self.registers[rs as usize].to_ne_bytes());
+                let rt_value = i32::from_ne_bytes(self.registers[rt as usize].to_ne_bytes());
+                let result: i32 = (rs_value / rt_value) << shift_amount;
+                self.registers[rd as usize] =  u32::from_ne_bytes(result.to_ne_bytes())
+            },
+            Function::DIVU => {
+                let rs_value = self.registers[rs as usize];
+                let rt_value = self.registers[rt as usize];
+                let result = (rs_value / rt_value) << shift_amount;
+                self.registers[rd as usize] = result;
+            },
+            Function::AND => {
+                let rs_value = self.registers[rs as usize];
+                let rt_value = self.registers[rt as usize];
+                let result = (rs_value & rt_value) << shift_amount;
+                self.registers[rd as usize] = result;
+            },
+            Function::OR => {
+                let rs_value = self.registers[rs as usize];
+                let rt_value = self.registers[rt as usize];
+                let result = (rs_value | rt_value) << shift_amount;
+                self.registers[rd as usize] = result;
+            },
+            Function::XOR => {
+                let rs_value = self.registers[rs as usize];
+                let rt_value = self.registers[rt as usize];
+                let result = (rs_value ^ rt_value) << shift_amount;
+                self.registers[rd as usize] = result;
+            },
+            Function::NOR => {
+                let rs_value = self.registers[rs as usize];
+                let rt_value = self.registers[rt as usize];
+                let result = !(rs_value | rt_value) << shift_amount;
+                self.registers[rd as usize] = result;
+            },
+            Function::SLL => {
+                let rt_value = self.registers[rt as usize];
+                let result = rt_value << shift_amount;
+                self.registers[rd as usize] = result;
+            },
+            Function::SRL => {
+                let rt_value = self.registers[rt as usize];
+                let result = rt_value >> shift_amount;
+                self.registers[rd as usize] = result;
+            },
+            Function::SLLV => {
+                let rs_value = self.registers[rs as usize];
+                let rt_value = self.registers[rt as usize];
+                let result = rs_value << rt_value;
+                self.registers[rd as usize] = result;
+            },
+            Function::SRLV => {
+                let rs_value = self.registers[rs as usize];
+                let rt_value = self.registers[rt as usize];
+                let result = rs_value >> rt_value;
+                self.registers[rd as usize] = result;
+            },
+            Function::SLT => {
+                let rs_value = i32::from_ne_bytes(self.registers[rs as usize].to_ne_bytes());
+                let rt_value = i32::from_ne_bytes(self.registers[rt as usize].to_ne_bytes());
+                let result: i32 = ((rs_value < rt_value) as i32)  << shift_amount;
+                self.registers[rd as usize] =  u32::from_ne_bytes(result.to_ne_bytes())
+            },
+            Function::SLTU => {
+                let rs_value = self.registers[rs as usize];
+                let rt_value = self.registers[rt as usize];
+                let result = ((rs_value < rt_value) as u32)  << shift_amount;
+                self.registers[rd as usize] =  result;
+            },
+            Function::SRA => {
+                let rt_value = self.registers[rt as usize];
+                let result = rt_value * (2_u32.pow(shift_amount as u32));
+                self.registers[rd as usize] = result;
+            }
+            Function::SRAV => {
+                let rs_value = self.registers[rs as usize];
+                let rt_value = self.registers[rt as usize];
+                let result = rs_value * (2_u32.pow(rt_value as u32));
+                self.registers[rd as usize] = result;
+            }
+
+            
+            
+            _ => {}
+        }
     }
-
-    fn alu_operation(&self, rs:u8, rt:u8, rd:u8, shift_amount: u8, function: u8) {
-
-    }
-
+    
 }
 
 
 
 struct Instruction{}
 impl Instruction {
-    const R: u32 = 0o00;
-    const LW: u32 = 0o01;
-    const SW: u32 = 0o02;
-    const ADD_IMMEDIATE: u32 = 0o03;
-    const ADD_IMMEDIATE_UNSIGNED: u32 = 0o04;
-    const SUB_IMMEDIATE: u32 = 0o05;
-    const SUB_IMMEDIATE_UNSIGNED: u32 = 0o06;
-    const MUL_IMMEDIATE: u32 = 0o07;
-    const MUL_IMMEDIATE_UNSIGNED: u32 = 0o10;
-    const DIV_IMMEDIATE: u32 = 0o11;
-    const DIV_IMMEDIATE_UNSIGNED: u32 = 0o12;
-    const F_DIV_IMMEDIATE: u32 = 0o13;
-    const F_MUL_IMMEDIATE: u32 = 0o07;
-    const AND_IMMEDIATE: u32 = 0o15;
-    const OR_IMMEDIATE: u32 = 0o16;
-    const XOR_IMMEDIATE: u32 = 0o16;
-    const LEFT_SHIFT_IMMEDIATE: u32 = 0o17;
-    const RIGHT_SHIFT_IMMEDIATE: u32 = 0o20;
-    const LOAD_IMMEDIATE: u32 = 0o21;
-    const LOAD_UPPER_IMMEDIATE: u32 = 0o22;
-    const MOVE_FORM_HI: u32 = 0o23;
-    const MOVE_FORM_LO: u32 = 0o24;
-    const BRANCH_ON_EQUAL: u32 = 0o25;
-    const BRANCH_ON_NOT_EQUAL: u32 = 0o26;
-    const BRANCH_ON_GRATER_THAN: u32 = 0o26;
-    const BRANCH_ON_GRATER_THAN_OR_EQUAL: u32 = 0o27;
-    const BRANCH_ON_LESS_THAN: u32 = 0o30;
-    const BRANCH_ON_LESS_THAN_OR_EQUAL: u32 = 0o31;
-    const SET_LESS_THAN: u32 = 0o32;
-    const SET_LESS_THAN_IMMEDIATE: u32 = 0o33;
-    const JUMP: u32 = 0o34;
-    const JUMP_REGISTER: u32 = 0o35;
-    const JUMP_AND_LINK: u32 = 0o36;
-    const F_ADD_IMMEDIATE: u32 = 0o37;
-    const F_SUB_IMMEDIATE: u32 = 0o40;
+    //R instructions
+    const R: u8 = 0o00;
+    // Memory access instructions
+    const LB: u8 = 0o40;
+    const LBU: u8 = 0o44;
+    const LHW: u8 = 0o41;
+    const LHWU: u8 = 0o45;
+    const LUI: u8 = 0o17;
+    const LW: u8 = 0o43;
+    const LWCz: u8 = 0o60;
+    const LWL: u8 = 0o42;
+    const LWR: u8 = 0o46;
+    const SB: u8 = 0o50;
+    const SHW: u8 = 0o51;
+    const SWR: u8 = 0o56;
+    const SWL: u8 = 0o52;
+    const SW: u8 = 0o53;
+    const MTHI: u8 = 0o21;
+    const MTLO: u8 = 0o22;
+    const MFHI: u8 = 0o23;
+    const SWCz: u8 = 0o70;
+    const MFLO: u8 = 0o24;
+    // I aritmethic instructions
+    const ADDI: u8 = 0o10;
+    const ADDIU: u8 = 0o11;
+    const SUBI: u8 = 0o05;
+    const SUBIU: u8 = 0o06;
+    const F_DIV_IMMEDIATE: u8 = 0o13;
+    const F_MUL_IMMEDIATE: u8 = 0o07;
+    const ANDI: u8 = 0o14;
+    const ORI: u8 = 0o15;
+    const XORI: u8 = 0o16;
+    const SLL: u8 = 0o17;
+    const SRL: u8 = 0o20;
+    const SLTI: u8 = 0o12;
+    const SLTIU: u8 = 0o13;
+    // Jump/Branch instructions
+    const BEQ: u8 = 0o04;
+    const BLEZ: u8 = 0o06;
+    const BNE: u8 = 0o05;
+    const REGIMM:u8 = 0o01;
+    const J: u8 = 0o02;
+    const JAL: u8 = 0o03;
+    const JR: u8 = 0o35;
+    const BGTZ: u8 = 0o07;
+    const F_ADD_IMMEDIATE: u8 = 0o37;
+    const F_SUB_IMMEDIATE: u8 = 0o40;
+    const COPz: u8 = 0o20;
+}
+
+struct Function{}
+impl Function {
+    const ADD: u8 = 0o40;
+    const SUB: u8 = 0o42;
+    const ADDU: u8 = 0o41;
+    const SUBU: u8 = 0o43;
+    const AND: u8 = 0o44;
+    const OR: u8 = 0o45;
+    const XOR: u8 = 0o46;
+    const SLL: u8 = 0o00;
+    const SLLV: u8 = 0o04;
+    const NOR: u8 = 0o47;
+    const MULT: u8 = 0o30;
+    const MULTU: u8 = 0o31;
+    const DIV: u8 = 0o32;
+    const DIVU: u8 = 0o33;
+    const SLT: u8 = 0o52;
+    const SLTU: u8 = 0o53;
+    const SRA: u8 = 0o03;
+    const SRAV: u8 = 0o07;
+    const SRL: u8 = 0o02;
+    const SRLV: u8 = 0o06;
+    const SYSCALL: u8 = 0o14;
+    const BREAK: u8 = 0o15;
+    const JALR: u8 = 0o11;
+    const JR: u8 = 0o10;
+    const MFHI: u8 = 0o20;
+    const MFLO: u8 = 0o22;
+    const MTHI: u8 = 0o21;
+    const MTLO: u8 = 0o23;
+}
+
+struct Branches{}
+impl Branches {
+    const BLTZ: u8 = 0b00000;
+    const BLTZAL: u8 = 0b10000;
+    const BGEZ: u8 = 0b00001;
+    const BGEZAL: u8 = 0b10001;
 }

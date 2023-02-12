@@ -1,6 +1,6 @@
 # VM32bits
 
-This project is a Virtual Machine that emulates the MIPS architecture
+This project is a Virtual Machine that emulates the MIPS I architecture
 
 To start run `cargo run`
 
@@ -31,6 +31,7 @@ The source while developing this project have been:
 - The course in Computer's Architecture I and Computer's Architecture II that I attended at the University of Milan
 - [This document from the Ca' Foscari University of Venice](https://www.dsi.unive.it/~gasparetto/materials/MIPS_Instruction_Set.pdf)
 - [This more detailed document from Carnegie Mellon University](https://www.cs.cmu.edu/afs/cs/academic/class/15740-f97/public/doc/mips-isa.pdf)
+- [Another very detailed document from Cornell University](https://www.cs.cornell.edu/courses/cs3410/2008fa/MIPS_Vol2.pdf)
 
 ## Instruction formats
 
