@@ -8,30 +8,32 @@ impl Memory {
         Self{memory: v.into_boxed_slice()}
     }
 
-    pub fn getByte(&self, index: usize) -> u8 {
-        return self.memory[index];
+    pub fn getByte(&self, index: usize) -> [u8; 1] {
+        return [self.memory[index]];
     }
 
     pub fn writeByte(&mut self, index: usize, value: u8) {
        self.memory[index] = value;
     }
 
-    pub fn getBytes(&self, index: usize, bytes: usize) -> Box<[u8]> {
-        let mut res  = vec![0_u8; bytes];
-
-        for i in index..index+bytes {
-            res[i] = self.getByte(i);
-        }
-
-        return res.into_boxed_slice();
+    pub fn getHalfWord(&self, index: usize) -> [u8; 2] {
+        return [self.memory[index], self.memory[index+1]];
     }
-    
-    pub fn writeBytes(&mut self, index: usize, value: &[u8]) {
-        let bytes = value.len();
 
-        for i in 0..bytes {
-            self.writeByte(index + i, value[i]);
+    pub fn writeHalfWord(&mut self, index: usize, content: [u8; 2]) {
+        for (i, v) in content.iter().enumerate() {
+            self.memory[index + i] = *v;
         }
+    }
+
+    pub fn writeWord(&mut self, index: usize, content: [u8; 4]) {
+        for (i, v) in content.iter().enumerate() {
+            self.memory[index + i] = *v;
+        }
+    }
+
+    pub fn getWord(&self, index: usize) -> [u8; 4] {
+        return [self.memory[index], self.memory[index+1], self.memory[index+2], self.memory[index+3]]
     }
 
 }

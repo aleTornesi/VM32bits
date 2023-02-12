@@ -18,10 +18,10 @@ impl CPU {
 
     fn fetch(&mut self) -> u32 {
         let mut instructionBytes:[u8; 4] = [0; 4];
-        for (i, v) in self.memory.getBytes(self.pc, 4).into_iter().enumerate() {
-            instructionBytes[i] = *v;
+        for (i, v) in self.memory.getWord(self.pc).into_iter().enumerate() {
+            instructionBytes[i] = v;
         }
-        let res = u32::from_ne_bytes(instructionBytes);
+        let res = u32::from_be_bytes(instructionBytes);
         return res;
     }
 
@@ -42,24 +42,65 @@ impl CPU {
                 self.alu_operation(rs, rt, rd, shift_amount, function);
             },
             Instruction::ADDI => {
-                let parameters = CPU::get_r_immediate_instructions_values(instruction);
-                let result: i32 = i32::from_ne_bytes(self.registers[parameters.0 as usize].to_ne_bytes()) + i32::from_ne_bytes(parameters.2.to_ne_bytes());
-                self.registers[parameters.1 as usize] =  u32::from_ne_bytes(result.to_ne_bytes())
+                let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
+                let rs_value = i32::from_be_bytes(self.registers[rs as usize].to_be_bytes());
+                let immediate_signed_interpretation = i32::from_be_bytes(immediate.to_be_bytes());
+                let result = rs_value + immediate_signed_interpretation;
+                self.registers[rt as usize] = u32::from_be_bytes(result.to_be_bytes());
             },
             Instruction::ADDIU => {
-                let parameters = CPU::get_r_immediate_instructions_values(instruction);
-                let result: u32 = u32::from_be_bytes((self.registers[parameters.0 as usize] + parameters.2 as u32).to_be_bytes());
-                self.registers[parameters.1 as usize] = result;
+                let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
+                let rs_value = self.registers[rs as usize];
+                let result = rs_value + immediate;
+                self.registers[rt as usize] = result;
             },
             Instruction::SUBI => {
-                let parameters = CPU::get_r_immediate_instructions_values(instruction);
-                let result: i32 = i32::from_ne_bytes(self.registers[parameters.0 as usize].to_ne_bytes()) - i32::from_ne_bytes(parameters.2.to_ne_bytes());
-                self.registers[parameters.1 as usize] =  u32::from_ne_bytes(result.to_ne_bytes())
+                let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
+                let rs_value = i32::from_be_bytes(self.registers[rs as usize].to_be_bytes());
+                let immediate_signed_interpretation = i32::from_be_bytes(immediate.to_be_bytes());
+                let result = rs_value - immediate_signed_interpretation;
+                self.registers[rt as usize] = u32::from_be_bytes(result.to_be_bytes());
             },
             Instruction::SUBIU => {
-                let parameters = CPU::get_r_immediate_instructions_values(instruction);
-                let result: u32 = u32::from_be_bytes((self.registers[parameters.0 as usize] - parameters.2 as u32).to_be_bytes());
-                self.registers[parameters.1 as usize] = result;
+                let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
+                let rs_value = self.registers[rs as usize];
+                let result = rs_value - immediate;
+                self.registers[rt as usize] = result;
+            },
+            Instruction::LB => {
+                let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
+                let index = self.registers[rs as usize] as i32;
+                let offset = i32::from_be_bytes(immediate.to_be_bytes());
+                let signed_content = i8::from_be_bytes(self.memory.getByte((index + offset) as usize));
+                self.registers[rt as usize] =  u32::from_be_bytes((signed_content as i32).to_be_bytes());
+            },
+            Instruction::LBU => {
+                let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
+                let index = self.registers[rs as usize] as i32;
+                let offset = i32::from_be_bytes(immediate.to_be_bytes());
+                let content = u8::from_be_bytes(self.memory.getByte((index + offset) as usize));
+                self.registers[rt as usize] = content as u32;
+            },
+            Instruction::LHW => {
+                let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
+                let index = self.registers[rs as usize] as i32;
+                let offset = i32::from_be_bytes(immediate.to_be_bytes());
+                let signed_content = i16::from_be_bytes(self.memory.getHalfWord((index + offset) as usize));
+                self.registers[rt as usize] =  u32::from_be_bytes((signed_content as i32).to_be_bytes());
+            },
+            Instruction::LHWU => {
+                let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
+                let index = self.registers[rs as usize] as i32;
+                let offset = i32::from_be_bytes(immediate.to_be_bytes());
+                let content = u16::from_be_bytes(self.memory.getHalfWord((index + offset) as usize));
+                self.registers[rt as usize] = content as u32;
+            },
+            Instruction::LW => {
+                let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
+                let index = self.registers[rs as usize] as i32;
+                let offset = i32::from_be_bytes(immediate.to_be_bytes());
+                let signed_content = i32::from_be_bytes(self.memory.getWord((index + offset) as usize));
+                self.registers[rt as usize] =  u32::from_be_bytes((signed_content as i32).to_be_bytes());
             },
 
 
@@ -81,10 +122,10 @@ impl CPU {
 
         match function {
             Function::ADD => {
-                let rs_value = i32::from_ne_bytes(self.registers[rs as usize].to_ne_bytes());
-                let rt_value = i32::from_ne_bytes(self.registers[rt as usize].to_ne_bytes());
+                let rs_value = i32::from_be_bytes(self.registers[rs as usize].to_be_bytes());
+                let rt_value = i32::from_be_bytes(self.registers[rt as usize].to_be_bytes());
                 let result: i32 = (rs_value + rt_value) << shift_amount;
-                self.registers[rd as usize] =  u32::from_ne_bytes(result.to_ne_bytes())
+                self.registers[rd as usize] =  u32::from_be_bytes(result.to_be_bytes())
             },
             Function::ADDU => {
                 let rs_value = self.registers[rs as usize];
@@ -93,10 +134,10 @@ impl CPU {
                 self.registers[rd as usize] = result;
             },
             Function::SUB => {
-                let rs_value = i32::from_ne_bytes(self.registers[rs as usize].to_ne_bytes());
-                let rt_value = i32::from_ne_bytes(self.registers[rt as usize].to_ne_bytes());
+                let rs_value = i32::from_be_bytes(self.registers[rs as usize].to_be_bytes());
+                let rt_value = i32::from_be_bytes(self.registers[rt as usize].to_be_bytes());
                 let result: i32 = (rs_value - rt_value) << shift_amount;
-                self.registers[rd as usize] =  u32::from_ne_bytes(result.to_ne_bytes())
+                self.registers[rd as usize] =  u32::from_be_bytes(result.to_be_bytes())
             },
             Function::SUBU => {
                 let rs_value = self.registers[rs as usize];
@@ -105,10 +146,10 @@ impl CPU {
                 self.registers[rd as usize] = result;
             },
             Function::MULT => {
-                let rs_value = i32::from_ne_bytes(self.registers[rs as usize].to_ne_bytes());
-                let rt_value = i32::from_ne_bytes(self.registers[rt as usize].to_ne_bytes());
+                let rs_value = i32::from_be_bytes(self.registers[rs as usize].to_be_bytes());
+                let rt_value = i32::from_be_bytes(self.registers[rt as usize].to_be_bytes());
                 let result: i32 = (rs_value * rt_value) << shift_amount;
-                self.registers[rd as usize] =  u32::from_ne_bytes(result.to_ne_bytes())
+                self.registers[rd as usize] =  u32::from_be_bytes(result.to_be_bytes())
             },
             Function::MULTU => {
                 let rs_value = self.registers[rs as usize];
@@ -117,10 +158,10 @@ impl CPU {
                 self.registers[rd as usize] = result;
             },
             Function::DIV => {
-                let rs_value = i32::from_ne_bytes(self.registers[rs as usize].to_ne_bytes());
-                let rt_value = i32::from_ne_bytes(self.registers[rt as usize].to_ne_bytes());
+                let rs_value = i32::from_be_bytes(self.registers[rs as usize].to_be_bytes());
+                let rt_value = i32::from_be_bytes(self.registers[rt as usize].to_be_bytes());
                 let result: i32 = (rs_value / rt_value) << shift_amount;
-                self.registers[rd as usize] =  u32::from_ne_bytes(result.to_ne_bytes())
+                self.registers[rd as usize] =  u32::from_be_bytes(result.to_be_bytes())
             },
             Function::DIVU => {
                 let rs_value = self.registers[rs as usize];
@@ -175,10 +216,10 @@ impl CPU {
                 self.registers[rd as usize] = result;
             },
             Function::SLT => {
-                let rs_value = i32::from_ne_bytes(self.registers[rs as usize].to_ne_bytes());
-                let rt_value = i32::from_ne_bytes(self.registers[rt as usize].to_ne_bytes());
+                let rs_value = i32::from_be_bytes(self.registers[rs as usize].to_be_bytes());
+                let rt_value = i32::from_be_bytes(self.registers[rt as usize].to_be_bytes());
                 let result: i32 = ((rs_value < rt_value) as i32)  << shift_amount;
-                self.registers[rd as usize] =  u32::from_ne_bytes(result.to_ne_bytes())
+                self.registers[rd as usize] =  u32::from_be_bytes(result.to_be_bytes())
             },
             Function::SLTU => {
                 let rs_value = self.registers[rs as usize];

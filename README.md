@@ -108,28 +108,3 @@ This instruction performs a subtraction between an integer contained in the r<su
 This instruction performs a subtraction between an integer contained in the r<sub>s</sub> and the immediate, both interpreted as unsigned integers
 
 **Op Code**: 0o06
-
-### Muli (Multiply immediate)
-
-This instruction performs a multiplication between an integer contained in the r<sub>s</sub> and the immediate, both encoded in 2's complement
-
-**Op Code**: 0o07
-### Mului (Multiply unsigned immediate)
-
-This instruction performs a multiplication between an integer contained in the r<sub>s</sub> and the immediate, both encoded in 2's complement
-
-****Op Code****: 0o010
-
-### Divi
-
-This instruction performs a integer division between an integer contained in the r<sub>s</sub> and the immediate, both encoded in 2's complement
-
-**Op Code**: 0o011
-
-### Divui
-
-This instruction performs a integer division between an integer contained in the r<sub>s</sub> and the immediate, both encoded in 2's complement
-
-**Op Code**: 0o012
-
-<br>
