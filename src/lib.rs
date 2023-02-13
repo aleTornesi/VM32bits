@@ -199,6 +199,19 @@ mod tests {
         assert_eq!(cpu.get_register_value(rd as usize), 0);
     }
     
+    #[test]
+    fn LUI() {
+        let mut cpu = CPU::new(Memory::new(0));
+
+        let op_code = 0o17_u32;
+        let rs = 0_u32;
+        let rd: u32 = 5_u32;
+        let immediate = 1_u32;
+
+        cpu.execute(form_instruction(op_code, rs, rd, immediate));
+
+        assert_eq!(cpu.get_register_value(rd as usize), immediate << 16);
+    }
     
 
     fn form_instruction(op_code: u32, rs: u32, rd: u32, immediate: u32) -> u32 {

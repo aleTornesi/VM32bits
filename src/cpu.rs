@@ -102,6 +102,11 @@ impl CPU {
                 let signed_content = i32::from_be_bytes(self.memory.getWord((index + offset) as usize));
                 self.registers[rt as usize] =  u32::from_be_bytes((signed_content as i32).to_be_bytes());
             },
+            Instruction::LUI => {
+                let (_, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
+                self.registers[rt as usize] = immediate << 16;
+            },
+            
 
 
             _ => {}
