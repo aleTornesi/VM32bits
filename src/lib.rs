@@ -246,6 +246,126 @@ mod tests {
         assert_eq!(cpu.get_register_value(5), 2)
     }
 
+    #[test]
+    fn AND() {
+        let mut cpu = CPU::new(Memory::new(0));
+
+        let op_code = 0o10_u32;
+        let rs = 5_u32;
+        let rd = 10_u32;
+        let immediate = 16_u32;
+        let instruction = form_i_instruction(op_code, rs, rd, immediate);
+        cpu.execute(instruction);
+
+        let op_code = 0o10_u32;
+        let rs = 5_u32;
+        let rd = 3_u32;
+        let immediate = 24_u32;
+        let instruction = form_i_instruction(op_code, rs, rd, immediate);
+        cpu.execute(instruction);
+
+        let op_code = 0o00_u32;
+        let rs = 10_u32;
+        let rt = 3_u32;
+        let rd = 5_u32;
+        let shift_amount = 0_u32;
+        let function = 0o44_u32;
+        let instruction = form_r_instruction(op_code, rs, rt, rd, shift_amount, function);
+        cpu.execute(instruction);
+        
+        assert_eq!(cpu.get_register_value(rd as usize), 16_u32);
+    }
+    
+    #[test]
+    fn OR() {
+        let mut cpu = CPU::new(Memory::new(0));
+
+        let op_code = 0o10_u32;
+        let rs = 5_u32;
+        let rd = 10_u32;
+        let immediate = 16_u32;
+        let instruction = form_i_instruction(op_code, rs, rd, immediate);
+        cpu.execute(instruction);
+
+        let op_code = 0o10_u32;
+        let rs = 5_u32;
+        let rd = 3_u32;
+        let immediate = 8_u32;
+        let instruction = form_i_instruction(op_code, rs, rd, immediate);
+        cpu.execute(instruction);
+
+        let op_code = 0o00_u32;
+        let rs = 10_u32;
+        let rt = 3_u32;
+        let rd = 5_u32;
+        let shift_amount = 0_u32;
+        let function = 0o45_u32;
+        let instruction = form_r_instruction(op_code, rs, rt, rd, shift_amount, function);
+        cpu.execute(instruction);
+        
+        assert_eq!(cpu.get_register_value(rd as usize), 24_u32);
+    }
+    
+    #[test]
+    fn XOR() {
+        let mut cpu = CPU::new(Memory::new(0));
+
+        let op_code = 0o10_u32;
+        let rs = 5_u32;
+        let rd = 10_u32;
+        let immediate = 16_u32;
+        let instruction = form_i_instruction(op_code, rs, rd, immediate);
+        cpu.execute(instruction);
+
+        let op_code = 0o10_u32;
+        let rs = 5_u32;
+        let rd = 3_u32;
+        let immediate = 24_u32;
+        let instruction = form_i_instruction(op_code, rs, rd, immediate);
+        cpu.execute(instruction);
+
+        let op_code = 0o00_u32;
+        let rs = 10_u32;
+        let rt = 3_u32;
+        let rd = 5_u32;
+        let shift_amount = 0_u32;
+        let function = 0o46_u32;
+        let instruction = form_r_instruction(op_code, rs, rt, rd, shift_amount, function);
+        cpu.execute(instruction);
+        
+        assert_eq!(cpu.get_register_value(rd as usize), 8_u32);
+    }
+    
+    #[test]
+    fn NOR() {
+        let mut cpu = CPU::new(Memory::new(0));
+
+        let op_code = 0o10_u32;
+        let rs = 5_u32;
+        let rd = 10_u32;
+        let immediate = 16_u32;
+        let instruction = form_i_instruction(op_code, rs, rd, immediate);
+        cpu.execute(instruction);
+
+        let op_code = 0o10_u32;
+        let rs = 5_u32;
+        let rd = 3_u32;
+        let immediate = 24_u32;
+        let instruction = form_i_instruction(op_code, rs, rd, immediate);
+        cpu.execute(instruction);
+
+        let op_code = 0o00_u32;
+        let rs = 10_u32;
+        let rt = 3_u32;
+        let rd = 5_u32;
+        let shift_amount = 0_u32;
+        let function = 0o45_u32;
+        let instruction = form_r_instruction(op_code, rs, rt, rd, shift_amount, function);
+        cpu.execute(instruction);
+        
+        assert_eq!(cpu.get_register_value(rd as usize), 24_u32);
+    }
+
     
     #[test]
     fn ADD_IMMEDIATE() {

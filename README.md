@@ -17,10 +17,6 @@ To start run `cargo run`
         - [Addui](#addui-add-unsigned-immediate])
         - [Subi](#subi-add-immediate)
         - [Subui](#subui-add-unsigned-immediate])
-        - [Muli](#muli-add-immediate)
-        - [Mului](#mului-add-unsigned-immediate])
-        - [Divi](#divi-add-immediate)
-        - [Divui](#divui-add-unsigned-immediate])
     - [I instructions](#i-instructions)
     - [J instructions](#j-instructions)
 
