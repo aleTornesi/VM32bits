@@ -85,8 +85,8 @@ mod tests {
         cpu.execute(instruction);
 
         let op_code = 0o00_u32;
-        let rs = 3_u32;
-        let rt = 10_u32;
+        let rs = 10_u32;
+        let rt = 3_u32;
         let rd = 5_u32;
         let shift_amount = 0_u32;
         let function = 0o42_u32;
@@ -115,8 +115,8 @@ mod tests {
         cpu.execute(instruction);
 
         let op_code = 0o00_u32;
-        let rs = 3_u32;
-        let rt = 10_u32;
+        let rs = 10_u32;
+        let rt = 3_u32;
         let rd = 5_u32;
         let shift_amount = 0_u32;
         let function = 0o43_u32;
@@ -205,11 +205,11 @@ mod tests {
         cpu.execute(instruction);
 
         let op_code = 0o00_u32;
-        let rs = 3_u32;
-        let rt = 10_u32;
+        let rs = 10_u32;
+        let rt = 3_u32;
         let rd = 5_u32;
         let shift_amount = 0_u32;
-        let function = 0o30_u32;
+        let function = 0o32_u32;
         let instruction = form_r_instruction(op_code, rs, rt, rd, shift_amount, function);
         cpu.execute(instruction);
 
@@ -235,11 +235,11 @@ mod tests {
         cpu.execute(instruction);
 
         let op_code = 0o00_u32;
-        let rs = 3_u32;
-        let rt = 10_u32;
+        let rs = 10_u32;
+        let rt = 3_u32;
         let rd = 5_u32;
         let shift_amount = 0_u32;
-        let function = 0o31_u32;
+        let function = 0o33_u32;
         let instruction = form_r_instruction(op_code, rs, rt, rd, shift_amount, function);
         cpu.execute(instruction);
 
