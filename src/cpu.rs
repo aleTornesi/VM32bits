@@ -23,7 +23,7 @@ impl CPU {
 
     fn fetch(&mut self) -> u32 {
         let mut instructionBytes:[u8; 4] = [0; 4];
-        for (i, v) in self.memory.getWord(self.pc).into_iter().enumerate() {
+        for (i, v) in self.memory.get_word(self.pc).into_iter().enumerate() {
             instructionBytes[i] = v;
         }
         let res = u32::from_be_bytes(instructionBytes);
@@ -61,44 +61,87 @@ impl CPU {
             },
             Instruction::LB => {
                 let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
-                let index = self.registers[rs as usize] as i32;
+                let index = self.registers[rs as usize];
                 let offset = i32::from_be_bytes(immediate.to_be_bytes());
-                let signed_content = i8::from_be_bytes(self.memory.getByte((index + offset) as usize));
+                let signed_content = i8::from_be_bytes(self.memory.get_byte((index as i32 + offset) as usize));
                 self.registers[rt as usize] =  u32::from_be_bytes((signed_content as i32).to_be_bytes());
             },
             Instruction::LBU => {
                 let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
                 let index = self.registers[rs as usize] as i32;
                 let offset = i32::from_be_bytes(immediate.to_be_bytes());
-                let content = u8::from_be_bytes(self.memory.getByte((index + offset) as usize));
+                let content = u8::from_be_bytes(self.memory.get_byte((index + offset) as usize));
                 self.registers[rt as usize] = content as u32;
             },
             Instruction::LHW => {
                 let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
                 let index = self.registers[rs as usize] as i32;
                 let offset = i32::from_be_bytes(immediate.to_be_bytes());
-                let signed_content = i16::from_be_bytes(self.memory.getHalfWord((index + offset) as usize));
+                let signed_content = i16::from_be_bytes(self.memory.get_half_word((index + offset) as usize));
                 self.registers[rt as usize] =  u32::from_be_bytes((signed_content as i32).to_be_bytes());
             },
             Instruction::LHWU => {
                 let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
                 let index = self.registers[rs as usize] as i32;
                 let offset = i32::from_be_bytes(immediate.to_be_bytes());
-                let content = u16::from_be_bytes(self.memory.getHalfWord((index + offset) as usize));
+                let content = u16::from_be_bytes(self.memory.get_half_word((index + offset) as usize));
                 self.registers[rt as usize] = content as u32;
             },
             Instruction::LW => {
                 let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
-                let index = self.registers[rs as usize] as i32;
+                let index = self.registers[rs as usize];
                 let offset = i32::from_be_bytes(immediate.to_be_bytes());
-                let signed_content = i32::from_be_bytes(self.memory.getWord((index + offset) as usize));
+                let signed_content = i32::from_be_bytes(self.memory.get_word((index as i32 + offset) as usize));
                 self.registers[rt as usize] =  u32::from_be_bytes((signed_content as i32).to_be_bytes());
             },
             Instruction::LUI => {
                 let (_, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
                 self.registers[rt as usize] = immediate << 16;
             },
-            
+            Instruction::LWCz => {
+
+            },
+            Instruction::LWL => {
+
+            },
+            Instruction::LWR => {
+                // let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
+                // let mut address = self.registers[rs as usize] + immediate;
+                // let mut value = self.registers[rt as usize];
+                // if address % 4 == 0 {
+                //     value += u32::from_be_bytes(self.memory.get_word(address as usize));
+                // } else {
+                //     let mut i = address % 4;
+                //     while address % 4 != 0 {
+                //         value += (u8::from_be_bytes(self.memory.get_byte(address as usize)) as u32) * 2_u32.pow(8 * (i-1));
+                //         address += 1;
+                //         i -= 1;
+                //     }
+                // }
+
+                // self.registers[rt as usize] = value;
+            },
+            Instruction::SB => {
+                let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
+                let index = self.registers[rs as usize];
+                let offset = i32::from_be_bytes(immediate.to_be_bytes());
+                let signed_content = self.registers[rt as usize] as u8;
+                self.memory.write_byte((index as i32 + offset) as usize, signed_content);
+            },
+            Instruction::SHW => {
+                let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
+                let index = self.registers[rs as usize];
+                let offset = i32::from_be_bytes(immediate.to_be_bytes());
+                let signed_content = self.registers[rt as usize] as u16;
+                self.memory.write_half_word((index as i32 + offset) as usize, signed_content.to_be_bytes());
+            },
+            Instruction::SW => {
+                let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
+                let index = self.registers[rs as usize];
+                let offset = i32::from_be_bytes(immediate.to_be_bytes());
+                let signed_content = self.registers[rt as usize];
+                self.memory.write_word((index as i32 + offset) as usize, signed_content.to_be_bytes());
+            },
 
 
             _ => {}
@@ -255,8 +298,8 @@ enum Instruction {
     LBU = 0o44,
     LHW = 0o41,
     LHWU = 0o45,
-    LUI = 0o17,
     LW = 0o43,
+    LUI = 0o17,
     LWCz = 0o60,
     LWL = 0o42,
     LWR = 0o46,
