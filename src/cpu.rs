@@ -1,4 +1,9 @@
+extern crate num;
+
+use num_derive::FromPrimitive;
+
 use crate::memory::Memory;
+
 pub struct CPU {
     registers: [u32; 32],
     fRegisters: [f32; 32],
@@ -31,7 +36,7 @@ impl CPU {
 
     pub fn execute(&mut self, instruction: u32) {
         let op_code: u8 = (instruction >> 26) as u8;
-        println!("{:b}", op_code);
+        let op_code: Instruction = num::FromPrimitive::from_u8(op_code).unwrap();
         match op_code {
             Instruction::R => {
                 let rs:u8 = ((instruction >> 21) & CPU::REGISTER_MASK) as u8;
@@ -52,19 +57,6 @@ impl CPU {
                 let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
                 let rs_value = self.registers[rs as usize];
                 let result = rs_value + immediate;
-                self.registers[rt as usize] = result;
-            },
-            Instruction::SUBI => {
-                let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
-                let rs_value = i32::from_be_bytes(self.registers[rs as usize].to_be_bytes());
-                let immediate_signed_interpretation = i32::from_be_bytes(immediate.to_be_bytes());
-                let result = rs_value - immediate_signed_interpretation;
-                self.registers[rt as usize] = u32::from_be_bytes(result.to_be_bytes());
-            },
-            Instruction::SUBIU => {
-                let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
-                let rs_value = self.registers[rs as usize];
-                let result = rs_value - immediate;
                 self.registers[rt as usize] = result;
             },
             Instruction::LB => {
@@ -125,6 +117,7 @@ impl CPU {
             panic!("You cannot write on the zero register");
         }
 
+        let function: Function = num::FromPrimitive::from_u8(function).unwrap();
         match function {
             Function::ADD => {
                 let rs_value = i32::from_be_bytes(self.registers[rs as usize].to_be_bytes());
@@ -246,102 +239,93 @@ impl CPU {
 
             
             
-            _ => {}
+           _ => {}
         }
     }
     
 }
 
 
-
-struct Instruction{}
-impl Instruction {
+#[derive(FromPrimitive)]
+enum Instruction {
     //R instructions
-    const R: u8 = 0o00;
+    R = 0o00,
     // Memory access instructions
-    const LB: u8 = 0o40;
-    const LBU: u8 = 0o44;
-    const LHW: u8 = 0o41;
-    const LHWU: u8 = 0o45;
-    const LUI: u8 = 0o17;
-    const LW: u8 = 0o43;
-    const LWCz: u8 = 0o60;
-    const LWL: u8 = 0o42;
-    const LWR: u8 = 0o46;
-    const SB: u8 = 0o50;
-    const SHW: u8 = 0o51;
-    const SWR: u8 = 0o56;
-    const SWL: u8 = 0o52;
-    const SW: u8 = 0o53;
-    const MTHI: u8 = 0o21;
-    const MTLO: u8 = 0o22;
-    const MFHI: u8 = 0o23;
-    const SWCz: u8 = 0o70;
-    const MFLO: u8 = 0o24;
+    LB = 0o40,
+    LBU = 0o44,
+    LHW = 0o41,
+    LHWU = 0o45,
+    LUI = 0o17,
+    LW = 0o43,
+    LWCz = 0o60,
+    LWL = 0o42,
+    LWR = 0o46,
+    SB = 0o50,
+    SHW = 0o51,
+    SWR = 0o56,
+    SWL = 0o52,
+    SW = 0o53,
+    SWCz = 0o70,
     // I aritmethic instructions
-    const ADDI: u8 = 0o10;
-    const ADDIU: u8 = 0o11;
-    const SUBI: u8 = 0o05;
-    const SUBIU: u8 = 0o06;
-    const F_DIV_IMMEDIATE: u8 = 0o13;
-    const F_MUL_IMMEDIATE: u8 = 0o07;
-    const ANDI: u8 = 0o14;
-    const ORI: u8 = 0o15;
-    const XORI: u8 = 0o16;
-    const SLL: u8 = 0o17;
-    const SRL: u8 = 0o20;
-    const SLTI: u8 = 0o12;
-    const SLTIU: u8 = 0o13;
+    ADDI = 0o10,
+    ADDIU = 0o11,
+    // F_DIV_IMMEDIATE = 0o13,
+    // F_MUL_IMMEDIATE = 0o07,
+    ANDI = 0o14,
+    ORI = 0o15,
+    XORI = 0o16,
+    SLTI = 0o12,
+    SLTIU = 0o13,
     // Jump/Branch instructions
-    const BEQ: u8 = 0o04;
-    const BLEZ: u8 = 0o06;
-    const BNE: u8 = 0o05;
-    const REGIMM:u8 = 0o01;
-    const J: u8 = 0o02;
-    const JAL: u8 = 0o03;
-    const JR: u8 = 0o35;
-    const BGTZ: u8 = 0o07;
-    const F_ADD_IMMEDIATE: u8 = 0o37;
-    const F_SUB_IMMEDIATE: u8 = 0o40;
-    const COPz: u8 = 0o20;
+    BEQ = 0o04,
+    BLEZ = 0o06,
+    BNE = 0o05,
+    REGIMM = 0o01,
+    J = 0o02,
+    JAL = 0o03,
+    JR = 0o35,
+    BGTZ = 0o07,
+    // F_ADD_IMMEDIATE = 0o37,
+    // F_SUB_IMMEDIATE = 0o40,
+    COPz = 0o20,
 }
 
-struct Function{}
-impl Function {
-    const ADD: u8 = 0o40;
-    const SUB: u8 = 0o42;
-    const ADDU: u8 = 0o41;
-    const SUBU: u8 = 0o43;
-    const AND: u8 = 0o44;
-    const OR: u8 = 0o45;
-    const XOR: u8 = 0o46;
-    const SLL: u8 = 0o00;
-    const SLLV: u8 = 0o04;
-    const NOR: u8 = 0o47;
-    const MULT: u8 = 0o30;
-    const MULTU: u8 = 0o31;
-    const DIV: u8 = 0o32;
-    const DIVU: u8 = 0o33;
-    const SLT: u8 = 0o52;
-    const SLTU: u8 = 0o53;
-    const SRA: u8 = 0o03;
-    const SRAV: u8 = 0o07;
-    const SRL: u8 = 0o02;
-    const SRLV: u8 = 0o06;
-    const SYSCALL: u8 = 0o14;
-    const BREAK: u8 = 0o15;
-    const JALR: u8 = 0o11;
-    const JR: u8 = 0o10;
-    const MFHI: u8 = 0o20;
-    const MFLO: u8 = 0o22;
-    const MTHI: u8 = 0o21;
-    const MTLO: u8 = 0o23;
+#[derive(FromPrimitive)]
+enum Function {
+    ADD = 0o40,
+    SUB = 0o42,
+    ADDU = 0o41,
+    SUBU = 0o43,
+    AND = 0o44,
+    OR = 0o45,
+    XOR = 0o46,
+    SLL = 0o00,
+    SLLV = 0o04,
+    NOR = 0o47,
+    MULT = 0o30,
+    MULTU = 0o31,
+    DIV = 0o32,
+    DIVU = 0o33,
+    SLT = 0o52,
+    SLTU = 0o53,
+    SRA = 0o03,
+    SRAV = 0o07,
+    SRL = 0o02,
+    SRLV = 0o06,
+    SYSCALL = 0o14,
+    BREAK = 0o15,
+    JALR = 0o11,
+    JR = 0o10,
+    MFHI = 0o20,
+    MFLO = 0o22,
+    MTHI = 0o21,
+    MTLO = 0o23,
 }
 
-struct Branches{}
-impl Branches {
-    const BLTZ: u8 = 0b00000;
-    const BLTZAL: u8 = 0b10000;
-    const BGEZ: u8 = 0b00001;
-    const BGEZAL: u8 = 0b10001;
+#[allow(dead_code)]
+enum Branches {
+    BLTZ = 0b00000,
+    BLTZAL = 0b10000,
+    BGEZ = 0b00001,
+    BGEZAL = 0b10001,
 }
