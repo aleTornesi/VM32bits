@@ -142,9 +142,50 @@ impl CPU {
                 let signed_content = self.registers[rt as usize];
                 self.memory.write_word((index as i32 + offset) as usize, signed_content.to_be_bytes());
             },
-
-
-            _ => {}
+            Instruction::SWR => todo!(),
+            Instruction::SWL => todo!(),
+            Instruction::SWCz => todo!(),
+            Instruction::ANDI => {
+                let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
+                let rs_content = self.registers[rs as usize];
+                let result = rs_content & immediate;
+                self.registers[rt as usize] = result;
+            },
+            Instruction::ORI => {
+                let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
+                let rs_content = self.registers[rs as usize];
+                let result = rs_content | immediate;
+                self.registers[rt as usize] = result;
+            },
+            Instruction::XORI => {
+                let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
+                let rs_content = self.registers[rs as usize];
+                let result = rs_content & immediate;
+                self.registers[rt as usize] = result;
+            },
+            Instruction::SLTI => {
+                let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
+                let immediate = i32::from_be_bytes(immediate.to_be_bytes());
+                let rs_content = i32::from_be_bytes(self.registers[rs as usize].to_be_bytes());
+                let result = (rs_content < immediate) as u32;
+                self.registers[rt as usize] = result;
+            },
+            Instruction::SLTIU => {
+                let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
+                let rs_content = self.registers[rs as usize];
+                let result = (rs_content < immediate) as u32;
+                self.registers[rt as usize] = result;
+            },
+            Instruction::BEQ => todo!(),
+            Instruction::BLEZ => todo!(),
+            Instruction::BNE => todo!(),
+            Instruction::REGIMM => todo!(),
+            Instruction::J => todo!(),
+            Instruction::JAL => todo!(),
+            Instruction::JR => todo!(),
+            Instruction::BGTZ => todo!(),
+            Instruction::COPz => todo!(),
+            
         }
     }
 
