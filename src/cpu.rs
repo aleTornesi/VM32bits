@@ -176,14 +176,43 @@ impl CPU {
                 let result = (rs_content < immediate) as u32;
                 self.registers[rt as usize] = result;
             },
-            Instruction::BEQ => todo!(),
-            Instruction::BLEZ => todo!(),
-            Instruction::BNE => todo!(),
+            Instruction::BEQ => {
+                let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
+                let offset = i32::from_be_bytes(immediate.to_be_bytes());
+                if self.registers[rs as usize] == self.registers[rt as usize] {
+                    self.branch(offset as isize)
+                }
+            },
+            Instruction::BNE => {
+                let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
+                let offset = i32::from_be_bytes(immediate.to_be_bytes());
+                if self.registers[rs as usize] != self.registers[rt as usize] {
+                    self.branch(offset as isize)
+                }
+            },
+            Instruction::BLEZ => {
+                let (rs, _, immediate) = CPU::get_r_immediate_instructions_values(instruction);
+                let offset = i32::from_be_bytes(immediate.to_be_bytes());
+                if self.registers[rs as usize] <= 0 {
+                    self.branch(offset as isize)
+                }
+            },
+            Instruction::BGTZ => {
+                let (rs, _, immediate) = CPU::get_r_immediate_instructions_values(instruction);
+                let offset = i32::from_be_bytes(immediate.to_be_bytes());
+                if self.registers[rs as usize] > 0 {
+                    self.branch(offset as isize)
+                }
+            },
             Instruction::REGIMM => todo!(),
-            Instruction::J => todo!(),
-            Instruction::JAL => todo!(),
-            Instruction::JR => todo!(),
-            Instruction::BGTZ => todo!(),
+            Instruction::J => {
+                let address = self.get_jump_address(instruction);
+                self.pc = address as usize;
+            },
+            Instruction::JAL => {
+                self.registers[31] = (self.pc + 4) as u32;
+                self.pc = self.get_jump_address(instruction) as usize;
+            },
             Instruction::COPz => todo!(),
             
         }
@@ -194,6 +223,17 @@ impl CPU {
         let rd = ((instruction >> 16) & CPU::REGISTER_MASK) as u8;
         let immediate = (instruction & CPU::IMMEDIATE_MASK) as u32;
         return (rs, rd, immediate);
+    }
+
+    fn get_jump_address(&self, instruction: u32) -> u32 {
+        let pseudo_address = instruction & 0b0000_0011_1111_1111_1111_1111_1111_1111;
+        return pseudo_address << 2 + (self.pc & 0xf0000000);
+    }
+
+    fn branch(&mut self, offset: isize) {
+        let mut pc_content = self.pc as isize;
+        pc_content += offset;
+        self.pc = pc_content as usize;
     }
 
     fn alu_operation(&mut self, rs:u8, rt:u8, rd:u8, shift_amount: u8, function: u8) {
@@ -367,7 +407,6 @@ enum Instruction {
     REGIMM = 0o01,
     J = 0o02,
     JAL = 0o03,
-    JR = 0o35,
     BGTZ = 0o07,
     // F_ADD_IMMEDIATE = 0o37,
     // F_SUB_IMMEDIATE = 0o40,
