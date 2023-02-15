@@ -286,14 +286,14 @@ impl CPU {
             Function::DIV => {
                 let rs_value = i32::from_be_bytes(self.registers[rs as usize].to_be_bytes());
                 let rt_value = i32::from_be_bytes(self.registers[rt as usize].to_be_bytes());
-                let result: i32 = rs_value / rt_value;
-                self.registers[rd as usize] =  u32::from_be_bytes(result.to_be_bytes())
+                self.LO = u32::from_be_bytes((rs_value / rt_value).to_be_bytes());
+                self.HI = u32::from_be_bytes((rs_value % rt_value).to_be_bytes());
             },
             Function::DIVU => {
                 let rs_value = self.registers[rs as usize];
                 let rt_value = self.registers[rt as usize];
-                let result = rs_value / rt_value;
-                self.registers[rd as usize] = result;
+                self.LO = rs_value / rt_value;
+                self.HI = rs_value % rt_value;
             },
             Function::AND => {
                 let rs_value = self.registers[rs as usize];
