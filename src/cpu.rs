@@ -360,10 +360,21 @@ impl CPU {
                 let result = rs_value * (2_u32.pow(rt_value as u32));
                 self.registers[rd as usize] = result;
             }
-
+            Function::SYSCALL => todo!(),
+            Function::BREAK => todo!(),
+            Function::JALR => {
+                self.registers[rd as usize];
+                self.pc = self.registers[rs as usize] as usize;
+            },
+            Function::JR => {
+                let rs_value = self.registers[rs as usize];
+                self.pc = rs_value as usize;
+            },
+            Function::MFHI => todo!(),
+            Function::MFLO => todo!(),
+            Function::MTHI => todo!(),
+            Function::MTLO => todo!(),
             
-            
-           _ => {}
         }
     }
     
