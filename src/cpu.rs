@@ -8,7 +8,9 @@ pub struct CPU {
     registers: [u32; 32],
     fRegisters: [f32; 32],
     memory: Memory,
-    pc: usize
+    pc: usize,
+    HI: u32,
+    LO: u32
     //index: u32
 }
 
@@ -18,7 +20,7 @@ impl CPU {
     const IMMEDIATE_MASK: u32 = 0x0000ffff;
 
     pub fn new(memory: Memory) -> CPU {
-        CPU{ registers: [0; 32], fRegisters: [0_f32; 32], memory, pc: 0 /*index: 0*/ }
+        CPU{ registers: [0; 32], fRegisters: [0_f32; 32], memory, pc: 0, HI: 0, LO: 0 }
     }
 
     fn fetch(&mut self) -> u32 {
@@ -246,73 +248,75 @@ impl CPU {
             Function::ADD => {
                 let rs_value = i32::from_be_bytes(self.registers[rs as usize].to_be_bytes());
                 let rt_value = i32::from_be_bytes(self.registers[rt as usize].to_be_bytes());
-                let result: i32 = (rs_value + rt_value) << shift_amount;
+                let result: i32 = rs_value + rt_value;
                 self.registers[rd as usize] =  u32::from_be_bytes(result.to_be_bytes())
             },
             Function::ADDU => {
                 let rs_value = self.registers[rs as usize];
                 let rt_value = self.registers[rt as usize];
-                let result = (rs_value + rt_value) << shift_amount;
+                let result = rs_value + rt_value;
                 self.registers[rd as usize] = result;
             },
             Function::SUB => {
                 let rs_value = i32::from_be_bytes(self.registers[rs as usize].to_be_bytes());
                 let rt_value = i32::from_be_bytes(self.registers[rt as usize].to_be_bytes());
-                let result: i32 = (rs_value - rt_value) << shift_amount;
+                let result: i32 = rs_value - rt_value;
                 self.registers[rd as usize] =  u32::from_be_bytes(result.to_be_bytes())
             },
             Function::SUBU => {
                 let rs_value = self.registers[rs as usize];
                 let rt_value = self.registers[rt as usize];
-                let result = (rs_value - rt_value) << shift_amount;
+                let result = rs_value - rt_value;
                 self.registers[rd as usize] = result;
             },
             Function::MULT => {
                 let rs_value = i32::from_be_bytes(self.registers[rs as usize].to_be_bytes());
                 let rt_value = i32::from_be_bytes(self.registers[rt as usize].to_be_bytes());
-                let result: i32 = (rs_value * rt_value) << shift_amount;
-                self.registers[rd as usize] =  u32::from_be_bytes(result.to_be_bytes())
+                let result = (rs_value * rt_value) as i64;
+                self.LO = u64::from_be_bytes(result.to_be_bytes()) as u32;
+                self.HI = u64::from_be_bytes((result >> 32).to_be_bytes()) as u32;
             },
             Function::MULTU => {
                 let rs_value = self.registers[rs as usize];
                 let rt_value = self.registers[rt as usize];
-                let result = (rs_value * rt_value) << shift_amount;
-                self.registers[rd as usize] = result;
+                let result = (rs_value * rt_value) as u64;
+                self.LO = result as u32;
+                self.HI = (result >> 32) as u32;
             },
             Function::DIV => {
                 let rs_value = i32::from_be_bytes(self.registers[rs as usize].to_be_bytes());
                 let rt_value = i32::from_be_bytes(self.registers[rt as usize].to_be_bytes());
-                let result: i32 = (rs_value / rt_value) << shift_amount;
+                let result: i32 = rs_value / rt_value;
                 self.registers[rd as usize] =  u32::from_be_bytes(result.to_be_bytes())
             },
             Function::DIVU => {
                 let rs_value = self.registers[rs as usize];
                 let rt_value = self.registers[rt as usize];
-                let result = (rs_value / rt_value) << shift_amount;
+                let result = rs_value / rt_value;
                 self.registers[rd as usize] = result;
             },
             Function::AND => {
                 let rs_value = self.registers[rs as usize];
                 let rt_value = self.registers[rt as usize];
-                let result = (rs_value & rt_value) << shift_amount;
+                let result = rs_value & rt_value;
                 self.registers[rd as usize] = result;
             },
             Function::OR => {
                 let rs_value = self.registers[rs as usize];
                 let rt_value = self.registers[rt as usize];
-                let result = (rs_value | rt_value) << shift_amount;
+                let result = rs_value | rt_value;
                 self.registers[rd as usize] = result;
             },
             Function::XOR => {
                 let rs_value = self.registers[rs as usize];
                 let rt_value = self.registers[rt as usize];
-                let result = (rs_value ^ rt_value) << shift_amount;
+                let result = rs_value ^ rt_value;
                 self.registers[rd as usize] = result;
             },
             Function::NOR => {
                 let rs_value = self.registers[rs as usize];
                 let rt_value = self.registers[rt as usize];
-                let result = !(rs_value | rt_value) << shift_amount;
+                let result = !(rs_value | rt_value);
                 self.registers[rd as usize] = result;
             },
             Function::SLL => {
@@ -370,10 +374,18 @@ impl CPU {
                 let rs_value = self.registers[rs as usize];
                 self.pc = rs_value as usize;
             },
-            Function::MFHI => todo!(),
-            Function::MFLO => todo!(),
-            Function::MTHI => todo!(),
-            Function::MTLO => todo!(),
+            Function::MFHI => {
+                self.registers[rd as usize] = self.HI;
+            },
+            Function::MFLO => {
+                self.registers[rd as usize] = self.LO;
+            },
+            Function::MTHI => {
+                self.HI = self.registers[rd as usize];
+            },
+            Function::MTLO => {
+                self.HI = self.registers[rd as usize];
+            },
             
         }
     }
