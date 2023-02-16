@@ -1,5 +1,6 @@
 pub mod cpu;
 pub mod memory;
+pub mod memory_mapper;
 
 #[cfg(test)]
 mod tests {

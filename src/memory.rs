@@ -1,3 +1,4 @@
+#[derive(PartialEq)]
 pub struct Memory {
     memory: Box<[u8]>
 }
