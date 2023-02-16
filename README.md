@@ -12,18 +12,87 @@ To start run `cargo run`
     - [I instructions](#i-format) 
     - [J instructions](#j-format) 
 - [Instructions](#instructions)
-    - [R instructions](#r-instructions)
-        - [Addi](#addi-add-immediate)
-        - [Addui](#addui-add-unsigned-immediate])
-        - [Subi](#subi-add-immediate)
-        - [Subui](#subui-add-unsigned-immediate])
-    - [I instructions](#i-instructions)
-    - [J instructions](#j-instructions)
+    <details>
+    <summary>R instructions</summary>
 
+    - [ADD](#addi-add-immediate)
+    - [SUB]()
+    - [ADDU]()
+    - [SUBU]()
+    - [AND]()
+    - [OR]()
+    - [XOR]()
+    - [SLL]()
+    - [SLLV]()
+    - [NOR]()
+    - [MULT]()
+    - [MULTU]()
+    - [DIV]()
+    - [DIVU]()
+    - [SLT]()
+    - [SLTU]()
+    - [SRA]()
+    - [SRAV]()
+    - [SRL]()
+    - [SRLV]()
+    - [SYSCALL]()
+    - [BREAK]()
+    - [JALR]()
+    - [JR]()
+    - [MFHI]()
+    - [MFLO]()
+    - [MTHI]()
+    - [MTLO]()
 
+    </details>
+    <details>
+    <summary>I instructions</summary>
+
+    - [LB]()
+    - [LBU]()
+    - [LHW]()
+    - [LHWU]()
+    - [LW]()
+    - [LUI]()
+    - [LWCz]()
+    - [LWL]()
+    - [LWR]()
+    - [SB]()
+    - [SHW]()
+    - [SWR]()
+    - [SWL]()
+    - [SW]()
+    - [SWCz]()
+    - [ADDI]()
+    - [ADDIU]()
+    - [ANDI]()
+    - [ORI]()
+    - [XORI]()
+    - [SLTI]()
+    - [SLTIU]()
+    - [BEQ]()
+    - [BLEZ]()
+    - [BNE]()
+    - [BGTZ]()
+    - [COPz]()
+
+    </details>
+
+    <details>
+    <summary>J instructions</summary>
+
+    - [J]()
+    - [JAL]()
+    - [BLTZ]()
+    - [BLTZAL]()
+    - [BGEZ]()
+    - [BGEZAL]()
+
+    </details>
 ## Sources
 
 The source while developing this project have been:
+
 - The course in Computer's Architecture I and Computer's Architecture II that I attended at the University of Milan
 - [This document from the Ca' Foscari University of Venice](https://www.dsi.unive.it/~gasparetto/materials/MIPS_Instruction_Set.pdf)
 - [This more detailed document from Carnegie Mellon University](https://www.cs.cmu.edu/afs/cs/academic/class/15740-f97/public/doc/mips-isa.pdf)
