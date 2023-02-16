@@ -442,7 +442,9 @@ impl CPU {
 
     fn run(&mut self) {
         let halt = self.step();
-
+        if !halt {
+            self.run();
+        }
     }
 }
 
