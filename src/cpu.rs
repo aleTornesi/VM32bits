@@ -37,7 +37,7 @@ impl CPU {
         return self.registers[i];
     }
 
-    pub fn execute(&mut self, instruction: u32) {
+    pub fn execute(&mut self, instruction: u32) -> bool {
         let op_code: u8 = (instruction >> 26) as u8;
         let op_code: Instruction = num::FromPrimitive::from_u8(op_code).unwrap();
         match op_code {
@@ -47,7 +47,7 @@ impl CPU {
                 let rd:u8 = ((instruction >> 11) & CPU::REGISTER_MASK) as u8;
                 let shift_amount: u8 = ((instruction >> 6) & CPU::REGISTER_MASK) as u8;
                 let function: u8 = (instruction & CPU::FUNCTION_MASK) as u8;
-                self.alu_operation(rs, rt, rd, shift_amount, function);
+                return self.alu_operation(rs, rt, rd, shift_amount, function);
             },
             Instruction::ADDI => {
                 let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
@@ -220,8 +220,10 @@ impl CPU {
                 self.pc = self.get_jump_address(instruction) as usize;
             },
             Instruction::COPz => todo!(),
+
             
         }
+        return true;
     }
 
     fn regimm_branching(&mut self, rs:u8, instruction: u8, offset: u32) {
@@ -271,12 +273,12 @@ impl CPU {
         self.pc = pc_content as usize;
     }
 
-    fn alu_operation(&mut self, rs:u8, rt:u8, rd:u8, shift_amount: u8, function: u8) {
-        if rd == 0 {
+    fn alu_operation(&mut self, rs:u8, rt:u8, rd:u8, shift_amount: u8, function: u8) -> bool {
+        
+        let function: Function = num::FromPrimitive::from_u8(function).unwrap();
+        if rd == 0 && !matches!(function, Function::SYSCALL)  {
             panic!("You cannot write on the zero register");
         }
-
-        let function: Function = num::FromPrimitive::from_u8(function).unwrap();
         match function {
             Function::ADD => {
                 let rs_value = i32::from_be_bytes(self.registers[rs as usize].to_be_bytes());
@@ -397,7 +399,6 @@ impl CPU {
                 let result = rs_value * (2_u32.pow(rt_value as u32));
                 self.registers[rd as usize] = result;
             }
-            Function::SYSCALL => todo!(),
             Function::BREAK => todo!(),
             Function::JALR => {
                 self.registers[rd as usize];
@@ -419,10 +420,30 @@ impl CPU {
             Function::MTLO => {
                 self.HI = self.registers[rd as usize];
             },
+            Function::SYSCALL => {
+                let code = ((rs as u32) << 10) | ((rt as u32) << 15) | (shift_amount as u32);
+                println!("{}", code);
+                return match code {
+                    10_u32 => false,
+                    _ => true
+                }
+            },
             
         }
+
+        return true
     }
     
+
+    fn step(&mut self) -> bool {
+        let instruction = self.fetch();
+        return self.execute(instruction);
+    }
+
+    fn run(&mut self) {
+        let halt = self.step();
+
+    }
 }
 
 
@@ -491,12 +512,12 @@ enum Function {
     SRAV = 0o07,
     SRL = 0o02,
     SRLV = 0o06,
-    SYSCALL = 0o14,
     BREAK = 0o15,
     JALR = 0o11,
     JR = 0o10,
     MFHI = 0o20,
     MFLO = 0o22,
+    SYSCALL = 0o14,
     MTHI = 0o21,
     MTLO = 0o23,
 }
