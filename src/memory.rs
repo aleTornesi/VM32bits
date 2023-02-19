@@ -1,3 +1,5 @@
+use crate::memory_mapper::MemoryMappable;
+
 #[derive(PartialEq)]
 pub struct Memory {
     memory: Box<[u8]>
@@ -9,32 +11,41 @@ impl Memory {
         Self{memory: v.into_boxed_slice()}
     }
 
-    pub fn get_byte(&self, index: usize) -> [u8; 1] {
-        return [self.memory[index]];
+    #[allow(dead_code)]
+    pub fn get_size(&self) -> usize {
+        return self.memory.len()
     }
+}
 
-    pub fn write_byte(&mut self, index: usize, value: u8) {
-       self.memory[index] = value;
+
+impl MemoryMappable for Memory {
+    fn get_byte(&self, index: u32) -> [u8; 1] {
+        return [self.memory[index as usize]];
     }
-
-    pub fn get_half_word(&self, index: usize) -> [u8; 2] {
-        return [self.memory[index], self.memory[index+1]];
+    
+    fn write_byte(&mut self, index: u32, value: [u8; 1]) {
+       self.memory[index as usize] = value[0];
     }
-
-    pub fn write_half_word(&mut self, index: usize, content: [u8; 2]) {
+    
+    fn get_half_word(&self, index: u32) -> [u8; 2] {
+        return [self.memory[index as usize], self.memory[index as usize+1]];
+    }
+    
+    fn write_half_word(&mut self, index: u32, content: [u8; 2]) {
         for (i, v) in content.iter().enumerate() {
-            self.memory[index + i] = *v;
+            self.memory[index as usize + i] = *v;
         }
     }
-
-    pub fn write_word(&mut self, index: usize, content: [u8; 4]) {
+    
+    fn write_word(&mut self, index: u32, content: [u8; 4]) {
         for (i, v) in content.iter().enumerate() {
-            self.memory[index + i] = *v;
+            self.memory[index as usize + i] = *v;
         }
     }
-
-    pub fn get_word(&self, index: usize) -> [u8; 4] {
-        return [self.memory[index], self.memory[index+1], self.memory[index+2], self.memory[index+3]]
+    
+    fn get_word(&self, index: u32) -> [u8; 4] {
+        return [self.memory[index as usize], self.memory[index as usize+1], self.memory[index as usize+2], self.memory[index as usize+3]]
     }
-
+    
+    
 }

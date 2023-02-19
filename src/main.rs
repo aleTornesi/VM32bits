@@ -1,7 +1,52 @@
 mod cpu;
 mod memory;
+mod memory_mapper;
+mod screen_device;
+
+use memory::Memory;
+use cpu::CPU;
+use cpu::Instruction;
+use screen_device::ScreenDevice;
+use memory_mapper::MemoryMapper;
 
 fn main() {
-    let mut cpu: cpu::CPU = cpu::CPU::new(memory::Memory::new(1000));
-    println!("{}", cpu.execute(0b1010_001100))
+    let mem = Memory::new(256 * 256);
+    let sd = ScreenDevice{};
+
+    let mut memory_mapper = MemoryMapper::new();
+    memory_mapper.map(Box::new(mem), 0, 0xffff, false);
+    memory_mapper.map(Box::new(sd), 0x9000, 0x90ff, true);
+
+    let mut index = 0;
+
+    print_string(&mut memory_mapper, "Hello World!".to_owned(), &mut index);
+
+    let instruction = 0b1010_001100_u32;
+    memory_mapper.write_word(index, instruction.to_be_bytes());
+
+    let mut cpu: CPU = CPU::new(&mut memory_mapper);
+    cpu.run();
+
+    fn print_char(memory_mapper: &mut MemoryMapper, address: &mut u32, char: char, index: u8) {
+        let instruction = form_i_instruction(Instruction::ADDIU as u32, 0, 1, char as u32);
+    
+        memory_mapper.write_word(*address, instruction.to_be_bytes());
+        *address += 4;
+
+        let instruction = form_i_instruction(Instruction::SB as u32, 0, 1, 0x9000 + index as u32);
+        memory_mapper.write_word(*address, instruction.to_be_bytes());
+
+        *address += 4;
+    }
+
+    fn print_string(memory_mapper: &mut MemoryMapper, s: String, address: &mut u32) {
+        for (i, c) in s.chars().into_iter().enumerate() {
+            print_char(memory_mapper, address, c, (i) as u8)
+        }
+    } 
+}
+
+
+fn form_i_instruction(op_code: u32, rs: u32, rd: u32, immediate: u32) -> u32 {
+    return (op_code << 26) + (rs << 21) + (rd << 16) + immediate;
 }
