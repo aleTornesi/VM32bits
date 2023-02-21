@@ -6,8 +6,6 @@ use crate::memory_mapper::MemoryMapper;
 
 pub struct CPU<'a> {
     registers: [u32; 32],
-    #[allow(dead_code)]
-    f_registers: [f32; 32],
     pc: u32,
     hi: u32,
     lo: u32,
@@ -20,7 +18,7 @@ impl<'a> CPU<'a> {
     const IMMEDIATE_MASK: u32 = 0x0000ffff;
 
     pub fn new(memory_mapper:  &'a mut MemoryMapper) -> Self {
-        CPU{ registers: [0; 32], f_registers: [0_f32; 32], pc: 0, hi: 0, lo: 0, memory_mapper }
+        CPU{ registers: [0; 32], pc: 0, hi: 0, lo: 0, memory_mapper }
     }
 
     fn fetch(&mut self) -> u32 {
@@ -99,7 +97,7 @@ impl<'a> CPU<'a> {
                 let (_, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
                 self.registers[rt as usize] = immediate << 16;
             },
-            Instruction::LWCz => {
+            Instruction::LWC1 => {
 
             },
             Instruction::LWL => {
@@ -145,7 +143,7 @@ impl<'a> CPU<'a> {
             },
             Instruction::SWR => todo!(),
             Instruction::SWL => todo!(),
-            Instruction::SWCz => todo!(),
+            Instruction::SWC1 => todo!(),
             Instruction::ANDI => {
                 let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
                 let rs_content = self.registers[rs as usize];
@@ -216,7 +214,7 @@ impl<'a> CPU<'a> {
                 self.registers[31] = (self.pc + 4) as u32;
                 self.pc = self.get_jump_address(instruction);
             },
-            Instruction::COPz => todo!(),
+            Instruction::COP1 => todo!(),
 
             
         }
@@ -425,6 +423,7 @@ impl<'a> CPU<'a> {
                     _ => false
                 }
             },
+            Function::MOVCI => todo!(),
             
         }
 
@@ -457,7 +456,7 @@ pub enum Instruction {
     LHWU = 0o45,
     LW = 0o43,
     LUI = 0o17,
-    LWCz = 0o60,
+    LWC1 = 0o61,
     LWL = 0o42,
     LWR = 0o46,
     SB = 0o50,
@@ -465,12 +464,10 @@ pub enum Instruction {
     SWR = 0o56,
     SWL = 0o52,
     SW = 0o53,
-    SWCz = 0o70,
+    SWC1 = 0o70,
     // I aritmethic instructions
     ADDI = 0o10,
     ADDIU = 0o11,
-    // F_DIV_IMMEDIATE = 0o13,
-    // F_MUL_IMMEDIATE = 0o07,
     ANDI = 0o14,
     ORI = 0o15,
     XORI = 0o16,
@@ -484,9 +481,7 @@ pub enum Instruction {
     J = 0o02,
     JAL = 0o03,
     BGTZ = 0o07,
-    // F_ADD_IMMEDIATE = 0o37,
-    // F_SUB_IMMEDIATE = 0o40,
-    COPz = 0o20,
+    COP1 = 0o21,
 }
 
 #[derive(FromPrimitive)]
@@ -519,6 +514,7 @@ pub enum Function {
     SYSCALL = 0o14,
     MTHI = 0o21,
     MTLO = 0o23,
+    MOVCI = 0o01
 }
 
 #[derive(FromPrimitive)]
