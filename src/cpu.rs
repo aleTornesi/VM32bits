@@ -48,6 +48,24 @@ impl<'a> CPU<'a> {
     }
 
 
+    fn load(&mut self, instruction: u32, op: fn(&mut MemoryMapper, u32) -> u32) {
+        let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
+        let index = self.registers[rs as usize];
+        let offset = u32_to_i32_interpreatation(immediate);
+        self.registers[rt as usize] = op(self.memory_mapper, CPU::calculate_address_offset(index, offset))
+    }
+
+    fn calculate_address_offset(address: u32, offset: i32) -> u32 {
+        return (address as isize + offset as isize) as u32;
+    }
+
+    fn store(&mut self, instruction: u32, op: fn(&mut MemoryMapper, u32, u32)) {
+        let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
+        let address = self.registers[rs as usize];
+        let offset = u32_to_i32_interpreatation(immediate);
+        let signed_content = self.registers[rt as usize];
+        op(self.memory_mapper, signed_content, CPU::calculate_address_offset(address, offset));
+    }
 
     fn execute(&mut self, instruction: u32) -> bool {
         let op_code: u8 = (instruction >> 26) as u8;
@@ -61,116 +79,31 @@ impl<'a> CPU<'a> {
                 let function: u8 = (instruction & CPU::FUNCTION_MASK) as u8;
                 return self.alu_operation(rs, rt, rd, shift_amount, function);
             },
-            Instruction::ADDI => {
-                self.immediate_signed_op_write_r(instruction, |rs, immediate| rs + immediate);
-            },
-            Instruction::ADDIU => {
-                self.immediate_unsigned_op_write_r(instruction, |rs, immediate| rs + immediate);
-            },
-            Instruction::LB => {
-                let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
-                let index = self.registers[rs as usize];
-                let offset = i32::from_be_bytes(immediate.to_be_bytes());
-                let signed_content = i8::from_be_bytes(self.memory_mapper.get_byte((index as i32 + offset) as u32));
-                self.registers[rt as usize] =  u32::from_be_bytes((signed_content as i32).to_be_bytes());
-            },
-            Instruction::LBU => {
-                let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
-                let index = self.registers[rs as usize] as i32;
-                let offset = i32::from_be_bytes(immediate.to_be_bytes());
-                let content = u8::from_be_bytes(self.memory_mapper.get_byte((index + offset) as u32));
-                self.registers[rt as usize] = content as u32;
-            },
-            Instruction::LHW => {
-                let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
-                let index = self.registers[rs as usize] as i32;
-                let offset = i32::from_be_bytes(immediate.to_be_bytes());
-                let signed_content = i16::from_be_bytes(self.memory_mapper.get_half_word((index + offset) as u32));
-                self.registers[rt as usize] =  u32::from_be_bytes((signed_content as i32).to_be_bytes());
-            },
-            Instruction::LHWU => {
-                let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
-                let index = self.registers[rs as usize] as i32;
-                let offset = i32::from_be_bytes(immediate.to_be_bytes());
-                let content = u16::from_be_bytes(self.memory_mapper.get_half_word((index + offset) as u32));
-                self.registers[rt as usize] = content as u32;
-            },
-            Instruction::LW => {
-                let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
-                let index = self.registers[rs as usize];
-                let offset = i32::from_be_bytes(immediate.to_be_bytes());
-                let signed_content = i32::from_be_bytes(self.memory_mapper.get_word((index as i32 + offset) as u32));
-                self.registers[rt as usize] =  u32::from_be_bytes((signed_content as i32).to_be_bytes());
-            },
+            Instruction::ADDI => self.immediate_signed_op_write_r(instruction, |rs, immediate| rs + immediate),
+            Instruction::ADDIU => self.immediate_unsigned_op_write_r(instruction, |rs, immediate| rs + immediate),
+            Instruction::LB => self.load(instruction, |mm, address| i32_interpreatation_to_u32(i8::from_be_bytes(mm.get_byte(address)) as i32)),
+            Instruction::LBU => self.load(instruction, |mm, address| u8::from_be_bytes(mm.get_byte(address)) as u32),
+            Instruction::LHW => self.load(instruction, |mm, address| i32_interpreatation_to_u32(i16::from_be_bytes(mm.get_half_word(address)) as i32)),
+            Instruction::LHWU => self.load(instruction, |mm, address| u16::from_be_bytes(mm.get_half_word(address)) as u32),
+            Instruction::LW => self.load(instruction, |mm, address| u32::from_be_bytes(mm.get_word(address))),
             Instruction::LUI => {
                 let (_, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
                 self.registers[rt as usize] = immediate << 16;
             },
-            Instruction::LWC1 => {
-
-            },
-            Instruction::LWL => {
-
-            },
-            Instruction::LWR => {
-                // let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
-                // let mut address = self.registers[rs as usize] + immediate;
-                // let mut value = self.registers[rt as usize];
-                // if address % 4 == 0 {
-                //     value += u32::from_be_bytes(self.memory_mapper.get_word(address as usize));
-                // } else {
-                //     let mut i = address % 4;
-                //     while address % 4 != 0 {
-                //         value += (u8::from_be_bytes(self.memory_mapper.get_byte(address as usize)) as u32) * 2_u32.pow(8 * (i-1));
-                //         address += 1;
-                //         i -= 1;
-                //     }
-                // }
-
-                // self.registers[rt as usize] = value;
-            },
-            Instruction::SB => {
-                let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
-                let index = self.registers[rs as usize];
-                let offset = i32::from_be_bytes(immediate.to_be_bytes());
-                let signed_content = self.registers[rt as usize] as u8;
-                self.memory_mapper.write_byte((index as i32 + offset) as u32, signed_content.to_be_bytes());
-            },
-            Instruction::SHW => {
-                let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
-                let index = self.registers[rs as usize];
-                let offset = i32::from_be_bytes(immediate.to_be_bytes());
-                let signed_content = self.registers[rt as usize] as u16;
-                self.memory_mapper.write_half_word((index as i32 + offset) as u32, signed_content.to_be_bytes());
-            },
-            Instruction::SW => {
-                let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
-                let index = self.registers[rs as usize];
-                let offset = i32::from_be_bytes(immediate.to_be_bytes());
-                let signed_content = self.registers[rt as usize];
-                self.memory_mapper.write_word((index as i32 + offset) as u32, signed_content.to_be_bytes());
-            },
+            Instruction::LWC1 => todo!(),
+            Instruction::LWL => todo!(),
+            Instruction::LWR => todo!(),             // let (rs, rt, immediate) = CPU::get_r_immediate_instructions_values(instruction);
+            Instruction::SB => self.store(instruction, |mm, address, value| mm.write_byte(address, (value as u8).to_be_bytes())),
+            Instruction::SHW => self.store(instruction, |mm, address, value| mm.write_half_word(address, (value as u16).to_be_bytes())),
+            Instruction::SW => self.store(instruction, |mm, address, value| mm.write_word(address, value.to_be_bytes())),
             Instruction::SWR => todo!(),
             Instruction::SWL => todo!(),
             Instruction::SWC1 => todo!(),
-            Instruction::ANDI => {
-                self.immediate_unsigned_op_write_r(instruction, |rs, immediate| rs & immediate);
-            },
-            Instruction::ORI => {
-                self.immediate_unsigned_op_write_r(instruction, |rs, immediate| rs | immediate);
-            },
-            Instruction::XORI => {
-                self.immediate_unsigned_op_write_r(instruction, |rs, immediate| rs ^ immediate);
-            },
-            Instruction::SLTI => {
-                self.immediate_signed_op_write_r(instruction, |rs, immediate| (rs < immediate) as i32);
-            },
-            Instruction::SLTIU => {
-                let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
-                let rs_content = self.registers[rs as usize];
-                let result = (rs_content < immediate) as u32;
-                self.registers[rt as usize] = result;
-            },
+            Instruction::ANDI => self.immediate_unsigned_op_write_r(instruction, |rs, immediate| rs & immediate),
+            Instruction::ORI => self.immediate_unsigned_op_write_r(instruction, |rs, immediate| rs | immediate),
+            Instruction::XORI => self.immediate_unsigned_op_write_r(instruction, |rs, immediate| rs ^ immediate),
+            Instruction::SLTI => self.immediate_signed_op_write_r(instruction, |rs, immediate| (rs < immediate) as i32),
+            Instruction::SLTIU => self.immediate_unsigned_op_write_r(instruction, |rs, immediate| (rs < immediate) as u32),
             Instruction::BEQ => {
                 let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
                 let offset = i32::from_be_bytes(immediate.to_be_bytes());
