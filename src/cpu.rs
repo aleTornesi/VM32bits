@@ -33,6 +33,22 @@ impl<'a> CPU<'a> {
         return self.registers[i];
     }
 
+    fn immediate_unsigned_op_write_r(&mut self, instruction: u32, op: fn(u32, u32) -> u32) {
+        let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
+        let rs_value = self.registers[rs as usize];
+        self.registers[rt as usize] = op(rs_value, immediate);
+    }
+
+    fn immediate_signed_op_write_r(&mut self, instruction: u32, op: fn(i32, i32) -> i32) {
+        let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
+        let rs_value = u32_to_i32_interpreatation(self.registers[rs as usize]);
+        let immediate = u32_to_i32_interpreatation(immediate);
+        let result = op(rs_value, immediate);
+        self.registers[rt as usize] = i32_interpreatation_to_u32(result);
+    }
+
+
+
     fn execute(&mut self, instruction: u32) -> bool {
         let op_code: u8 = (instruction >> 26) as u8;
         let op_code: Instruction = num::FromPrimitive::from_u8(op_code).unwrap();
@@ -46,17 +62,10 @@ impl<'a> CPU<'a> {
                 return self.alu_operation(rs, rt, rd, shift_amount, function);
             },
             Instruction::ADDI => {
-                let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
-                let rs_value = i32::from_be_bytes(self.registers[rs as usize].to_be_bytes());
-                let immediate_signed_interpretation = i32::from_be_bytes(immediate.to_be_bytes());
-                let result = rs_value + immediate_signed_interpretation;
-                self.registers[rt as usize] = u32::from_be_bytes(result.to_be_bytes());
+                self.immediate_signed_op_write_r(instruction, |rs, immediate| rs + immediate);
             },
             Instruction::ADDIU => {
-                let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
-                let rs_value = self.registers[rs as usize];
-                let result = rs_value + immediate;
-                self.registers[rt as usize] = result;
+                self.immediate_unsigned_op_write_r(instruction, |rs, immediate| rs + immediate);
             },
             Instruction::LB => {
                 let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
@@ -145,29 +154,16 @@ impl<'a> CPU<'a> {
             Instruction::SWL => todo!(),
             Instruction::SWC1 => todo!(),
             Instruction::ANDI => {
-                let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
-                let rs_content = self.registers[rs as usize];
-                let result = rs_content & immediate;
-                self.registers[rt as usize] = result;
+                self.immediate_unsigned_op_write_r(instruction, |rs, immediate| rs & immediate);
             },
             Instruction::ORI => {
-                let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
-                let rs_content = self.registers[rs as usize];
-                let result = rs_content | immediate;
-                self.registers[rt as usize] = result;
+                self.immediate_unsigned_op_write_r(instruction, |rs, immediate| rs | immediate);
             },
             Instruction::XORI => {
-                let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
-                let rs_content = self.registers[rs as usize];
-                let result = rs_content & immediate;
-                self.registers[rt as usize] = result;
+                self.immediate_unsigned_op_write_r(instruction, |rs, immediate| rs ^ immediate);
             },
             Instruction::SLTI => {
-                let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
-                let immediate = i32::from_be_bytes(immediate.to_be_bytes());
-                let rs_content = i32::from_be_bytes(self.registers[rs as usize].to_be_bytes());
-                let result = (rs_content < immediate) as u32;
-                self.registers[rt as usize] = result;
+                self.immediate_signed_op_write_r(instruction, |rs, immediate| (rs < immediate) as i32);
             },
             Instruction::SLTIU => {
                 let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
@@ -216,7 +212,7 @@ impl<'a> CPU<'a> {
             },
             Instruction::COP1 => todo!(),
 
-            
+
         }
         return false;
     }
@@ -270,7 +266,7 @@ impl<'a> CPU<'a> {
     }
 
     fn alu_operation(&mut self, rs:u8, rt:u8, rd:u8, shift_amount: u8, function: u8) -> bool {
-        
+
         let function: Function = num::FromPrimitive::from_u8(function).unwrap();
         if rd == 0 && !matches!(function, Function::SYSCALL)  {
             panic!("You cannot write on the zero register");
@@ -424,12 +420,12 @@ impl<'a> CPU<'a> {
                 }
             },
             Function::MOVCI => todo!(),
-            
+
         }
 
         return false
     }
-    
+
 
     fn step(&mut self) -> bool {
         let instruction = self.fetch();
@@ -523,4 +519,12 @@ pub enum Branch {
     BLTZAL = 0b10000,
     BGEZ = 0b00001,
     BGEZAL = 0b10001,
+}
+
+pub fn u32_to_i32_interpreatation(value: u32) -> i32 {
+    return i32::from_be_bytes(value.to_be_bytes());
+}
+
+pub fn i32_interpreatation_to_u32(value: i32) -> u32 {
+    return u32::from_be_bytes(value.to_be_bytes());
 }
