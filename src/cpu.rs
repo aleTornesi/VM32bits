@@ -67,6 +67,23 @@ impl<'a> CPU<'a> {
         op(self.memory_mapper, signed_content, CPU::calculate_address_offset(address, offset));
     }
 
+    fn branch_instruction(&mut self, instruction: u32, condition: fn(u32, u32) -> bool) {
+        let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
+        let offset = u32_to_i32_interpreatation(immediate);
+        if condition(self.registers[rs as usize], self.registers[rt as usize]) {
+            self.branch(offset)
+        }
+    }
+
+    fn branch_instruction_signed_values(&mut self, instruction: u32, condition: fn(i32) -> bool) {
+        let (rs, _, immediate) = CPU::get_immediate_instructions_values(instruction);
+        let offset = u32_to_i32_interpreatation(immediate);
+        let rs_value = u32_to_i32_interpreatation(self.registers[rs as usize]);
+        if condition(rs_value) {
+            self.branch(offset)
+        }
+    }
+
     fn execute(&mut self, instruction: u32) -> bool {
         let op_code: u8 = (instruction >> 26) as u8;
         let op_code: Instruction = num::FromPrimitive::from_u8(op_code).unwrap();
@@ -104,41 +121,12 @@ impl<'a> CPU<'a> {
             Instruction::XORI => self.immediate_unsigned_op_write_r(instruction, |rs, immediate| rs ^ immediate),
             Instruction::SLTI => self.immediate_signed_op_write_r(instruction, |rs, immediate| (rs < immediate) as i32),
             Instruction::SLTIU => self.immediate_unsigned_op_write_r(instruction, |rs, immediate| (rs < immediate) as u32),
-            Instruction::BEQ => {
-                let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
-                let offset = i32::from_be_bytes(immediate.to_be_bytes());
-                if self.registers[rs as usize] == self.registers[rt as usize] {
-                    self.branch(offset)
-                }
-            },
-            Instruction::BNE => {
-                let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
-                let offset = i32::from_be_bytes(immediate.to_be_bytes());
-                if self.registers[rs as usize] != self.registers[rt as usize] {
-                    self.branch(offset)
-                }
-            },
-            Instruction::BLEZ => {
-                let (rs, _, immediate) = CPU::get_immediate_instructions_values(instruction);
-                let offset = i32::from_be_bytes(immediate.to_be_bytes());
-                if self.registers[rs as usize] <= 0 {
-                    self.branch(offset)
-                }
-            },
-            Instruction::BGTZ => {
-                let (rs, _, immediate) = CPU::get_immediate_instructions_values(instruction);
-                let offset = i32::from_be_bytes(immediate.to_be_bytes());
-                if self.registers[rs as usize] > 0 {
-                    self.branch(offset)
-                }
-            },
-            Instruction::REGIMM => {
-                let (rs, rt, immediate) = CPU::get_immediate_instructions_values(instruction);
-                self.regimm_branching(rs, rt, immediate);
-            },
-            Instruction::J => {
-                self.pc = self.get_jump_address(instruction);
-            },
+            Instruction::BEQ => self.branch_instruction(instruction, |rs, rt| rs == rt),
+            Instruction::BNE => self.branch_instruction(instruction, |rs, rt| rs != rt),
+            Instruction::BLEZ => self.branch_instruction_signed_values(instruction, |rs| rs <= 0),
+            Instruction::BGTZ => self.branch_instruction_signed_values(instruction, |rs| rs >= 0),
+            Instruction::REGIMM => self.regimm_branching(instruction),
+            Instruction::J => self.pc = self.get_jump_address(instruction),
             Instruction::JAL => {
                 self.registers[31] = (self.pc + 4) as u32;
                 self.pc = self.get_jump_address(instruction);
@@ -150,35 +138,22 @@ impl<'a> CPU<'a> {
         return false;
     }
 
-    fn regimm_branching(&mut self, rs:u8, instruction: u8, offset: u32) {
-        let branch: Branch = num::FromPrimitive::from_u8(instruction).unwrap();
-        let signed_rs_content = i32::from_be_bytes(self.registers[rs as usize].to_be_bytes());
-        let offset = i32::from_be_bytes(offset.to_be_bytes());
+    fn branch_al_instruction(&mut self, instruction: u32, condition: fn(i32) -> bool) {
+        self.registers[31] = self.pc + 4;
+        self.branch_instruction_signed_values(instruction, condition);
+    }
+
+    fn regimm_branching(&mut self, instruction: u32) {
+        let branch: u8 = ((instruction >> 16) & CPU::REGISTER_MASK) as u8;
+        let branch: Branch = num::FromPrimitive::from_u8(branch).unwrap();
         match branch {
-            Branch::BLTZ => {
-                if signed_rs_content < 0 {
-                    self.branch(offset);
-                }
-            },
-            Branch::BLTZAL => {
-                self.registers[31] = (self.pc + 4) as u32;
-                if signed_rs_content < 0 {
-                    self.branch(offset);
-                }
-            },
-            Branch::BGEZ => {
-                if signed_rs_content > 0 {
-                    self.branch(offset);
-                }
-            },
-            Branch::BGEZAL => {
-                self.registers[31] = (self.pc + 4) as u32;
-                if signed_rs_content > 0 {
-                    self.branch(offset);
-                }
-            },
+            Branch::BLTZ => self.branch_instruction_signed_values(instruction, |rs| rs < 0),
+            Branch::BLTZAL => self.branch_al_instruction(instruction, |rs| rs < 0),
+            Branch::BGEZ => self.branch_instruction_signed_values(instruction, |rs| rs > 0),
+            Branch::BGEZAL => self.branch_al_instruction(instruction, |rs| rs > 0),
         }
     }
+
 
     fn get_immediate_instructions_values(instruction: u32) -> (u8, u8, u32) {
         let rs = ((instruction >> 21) & CPU::REGISTER_MASK) as u8;
