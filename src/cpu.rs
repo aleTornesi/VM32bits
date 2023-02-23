@@ -173,6 +173,35 @@ impl<'a> CPU<'a> {
         self.pc = pc_content as u32;
     }
 
+    fn alu_instruction(&mut self, rs:u8, rt:u8, rd:u8, shift_amount: u8, op: fn(i32, i32, u8) -> i32) {
+        let signed_rs_content = u32_to_i32_interpreatation(self.registers[rs as usize]);
+        let signed_rt_content = u32_to_i32_interpreatation(self.registers[rt as usize]);
+        self.registers[rd as usize] = i32_interpreatation_to_u32(op(signed_rs_content, signed_rt_content, shift_amount));
+    }
+
+    fn alu_unsigned_instruction(&mut self, rs:u8, rt:u8, rd:u8, shift_amount: u8, op: fn(u32, u32, u8) -> u32) {
+        let rs_content = self.registers[rs as usize];
+        let rt_content = self.registers[rt as usize];
+        self.registers[rd as usize] = op(rs_content, rt_content, shift_amount);
+    }
+
+
+    fn alu_instruction_hi_lo_unsigned(&mut self, rs:u8, rt:u8, op: fn(u64, u64) -> u64) {
+        let rs_value = self.registers[rs as usize] as u64;
+        let rt_value = self.registers[rt as usize] as u64;
+        let result = op(rs_value, rt_value);
+        self.lo = result as u32;
+        self.hi = (result >> 32) as u32;
+    }
+
+    fn alu_instruction_hi_lo(&mut self, rs:u8, rt:u8, op: fn(i64, i64) -> i64) {
+        let rs_value = u32_to_i32_interpreatation(self.registers[rs as usize]) as i64;
+        let rt_value = u32_to_i32_interpreatation(self.registers[rt as usize]) as i64;
+        let result = op(rs_value, rt_value) as i64;
+        self.lo = i32_interpreatation_to_u32(result as i32);
+        self.hi = i32_interpreatation_to_u32((result >> 32) as i32);
+    }
+
     fn alu_operation(&mut self, rs:u8, rt:u8, rd:u8, shift_amount: u8, function: u8) -> bool {
 
         let function: Function = num::FromPrimitive::from_u8(function).unwrap();
@@ -180,125 +209,26 @@ impl<'a> CPU<'a> {
             panic!("You cannot write on the zero register");
         }
         match function {
-            Function::ADD => {
-                let rs_value = i32::from_be_bytes(self.registers[rs as usize].to_be_bytes());
-                let rt_value = i32::from_be_bytes(self.registers[rt as usize].to_be_bytes());
-                let result: i32 = rs_value + rt_value;
-                self.registers[rd as usize] =  u32::from_be_bytes(result.to_be_bytes())
-            },
-            Function::ADDU => {
-                let rs_value = self.registers[rs as usize];
-                let rt_value = self.registers[rt as usize];
-                let result = rs_value + rt_value;
-                self.registers[rd as usize] = result;
-            },
-            Function::SUB => {
-                let rs_value = i32::from_be_bytes(self.registers[rs as usize].to_be_bytes());
-                let rt_value = i32::from_be_bytes(self.registers[rt as usize].to_be_bytes());
-                let result: i32 = rs_value - rt_value;
-                self.registers[rd as usize] =  u32::from_be_bytes(result.to_be_bytes())
-            },
-            Function::SUBU => {
-                let rs_value = self.registers[rs as usize];
-                let rt_value = self.registers[rt as usize];
-                let result = rs_value - rt_value;
-                self.registers[rd as usize] = result;
-            },
-            Function::MULT => {
-                let rs_value = i32::from_be_bytes(self.registers[rs as usize].to_be_bytes());
-                let rt_value = i32::from_be_bytes(self.registers[rt as usize].to_be_bytes());
-                let result = (rs_value * rt_value) as i64;
-                self.lo = u64::from_be_bytes(result.to_be_bytes()) as u32;
-                self.hi = u64::from_be_bytes((result >> 32).to_be_bytes()) as u32;
-            },
-            Function::MULTU => {
-                let rs_value = self.registers[rs as usize];
-                let rt_value = self.registers[rt as usize];
-                let result = (rs_value * rt_value) as u64;
-                self.lo = result as u32;
-                self.hi = (result >> 32) as u32;
-            },
-            Function::DIV => {
-                let rs_value = i32::from_be_bytes(self.registers[rs as usize].to_be_bytes());
-                let rt_value = i32::from_be_bytes(self.registers[rt as usize].to_be_bytes());
-                self.lo = u32::from_be_bytes((rs_value / rt_value).to_be_bytes());
-                self.hi = u32::from_be_bytes((rs_value % rt_value).to_be_bytes());
-            },
-            Function::DIVU => {
-                let rs_value = self.registers[rs as usize];
-                let rt_value = self.registers[rt as usize];
-                self.lo = rs_value / rt_value;
-                self.hi = rs_value % rt_value;
-            },
-            Function::AND => {
-                let rs_value = self.registers[rs as usize];
-                let rt_value = self.registers[rt as usize];
-                let result = rs_value & rt_value;
-                self.registers[rd as usize] = result;
-            },
-            Function::OR => {
-                let rs_value = self.registers[rs as usize];
-                let rt_value = self.registers[rt as usize];
-                let result = rs_value | rt_value;
-                self.registers[rd as usize] = result;
-            },
-            Function::XOR => {
-                let rs_value = self.registers[rs as usize];
-                let rt_value = self.registers[rt as usize];
-                let result = rs_value ^ rt_value;
-                self.registers[rd as usize] = result;
-            },
-            Function::NOR => {
-                let rs_value = self.registers[rs as usize];
-                let rt_value = self.registers[rt as usize];
-                let result = !(rs_value | rt_value);
-                self.registers[rd as usize] = result;
-            },
-            Function::SLL => {
-                let rt_value = self.registers[rt as usize];
-                let result = rt_value << shift_amount;
-                self.registers[rd as usize] = result;
-            },
-            Function::SRL => {
-                let rt_value = self.registers[rt as usize];
-                let result = rt_value >> shift_amount;
-                self.registers[rd as usize] = result;
-            },
-            Function::SLLV => {
-                let rs_value = self.registers[rs as usize];
-                let rt_value = self.registers[rt as usize];
-                let result = rs_value << rt_value;
-                self.registers[rd as usize] = result;
-            },
-            Function::SRLV => {
-                let rs_value = self.registers[rs as usize];
-                let rt_value = self.registers[rt as usize];
-                let result = rs_value >> rt_value;
-                self.registers[rd as usize] = result;
-            },
-            Function::SLT => {
-                let rs_value = i32::from_be_bytes(self.registers[rs as usize].to_be_bytes());
-                let rt_value = i32::from_be_bytes(self.registers[rt as usize].to_be_bytes());
-                let result: i32 = ((rs_value < rt_value) as i32)  << shift_amount;
-                self.registers[rd as usize] =  u32::from_be_bytes(result.to_be_bytes())
-            },
-            Function::SLTU => {
-                let rs_value = self.registers[rs as usize];
-                let rt_value = self.registers[rt as usize];
-                let result = ((rs_value < rt_value) as u32)  << shift_amount;
-                self.registers[rd as usize] =  result;
-            },
-            Function::SRA => {
-                let rt_value = self.registers[rt as usize];
-                let result = rt_value * (2_u32.pow(shift_amount as u32));
-                self.registers[rd as usize] = result;
-            }
-            Function::SRAV => {
-                let rs_value = self.registers[rs as usize];
-                let rt_value = self.registers[rt as usize];
-                let result = rs_value * (2_u32.pow(rt_value as u32));
-                self.registers[rd as usize] = result;
-            }
+            Function::ADD => self.alu_instruction(rs, rt, rd, shift_amount, |rs, rt, _| rs + rt),
+            Function::ADDU => self.alu_unsigned_instruction(rs, rt, rd, shift_amount, |rs, rt, _| rs + rt),
+            Function::SUB => self.alu_instruction(rs, rt, rd, shift_amount, |rs, rt, _| rs - rt),
+            Function::SUBU => self.alu_unsigned_instruction(rs, rt, rd, shift_amount, |rs, rt, _| rs - rt),
+            Function::MULT => self.alu_instruction_hi_lo(rs, rt, |rs, rt| rs * rt),
+            Function::MULTU => self.alu_instruction_hi_lo(rs, rt, |rs, rt| rs * rt),
+            Function::DIV => self.alu_instruction_hi_lo(rs, rt, |rs, rt| rs / rt),
+            Function::DIVU => self.alu_instruction_hi_lo_unsigned(rs, rt, |rs, rt| rs / rt),
+            Function::AND => self.alu_instruction(rs, rt, rd, shift_amount, |rs, rt, _| rs & rt),
+            Function::OR => self.alu_instruction(rs, rt, rd, shift_amount, |rs, rt, _| rs | rt),
+            Function::XOR => self.alu_instruction(rs, rt, rd, shift_amount, |rs, rt, _| rs ^ rt),
+            Function::NOR => self.alu_instruction(rs, rt, rd, shift_amount, |rs, rt, _| !(rs | rt)),
+            Function::SLL => self.alu_instruction(rs, rt, rd, shift_amount, |_, rt, shift_amount| rt << shift_amount),
+            Function::SRL => self.alu_instruction(rs, rt, rd, shift_amount, |_, rt, shift_amount| rt >> shift_amount),
+            Function::SLLV => self.alu_instruction(rs, rt, rd, shift_amount, |rs, rt, _| rs << rt),
+            Function::SRLV => self.alu_instruction(rs, rt, rd, shift_amount, |rs, rt, _| rs >> rt),
+            Function::SLT => self.alu_instruction(rs, rt, rd, shift_amount, |rs, rt, _| (rs < rt) as i32),
+            Function::SLTU => self.alu_unsigned_instruction(rs, rt, rd, shift_amount, |rs, rt, _| (rs < rt) as u32),
+            Function::SRA => self.alu_unsigned_instruction(rs, rt, rd, shift_amount, |_, rt, shift_amount| rt * 2_u32.pow(shift_amount as u32)),
+            Function::SRAV => self.alu_unsigned_instruction(rs, rt, rd, shift_amount, |rs, rt, _| rs * 2_u32.pow(rt)),
             Function::BREAK => todo!(),
             Function::JALR => {
                 self.registers[rd as usize];
@@ -308,18 +238,10 @@ impl<'a> CPU<'a> {
                 let rs_value = self.registers[rs as usize];
                 self.pc = rs_value;
             },
-            Function::MFHI => {
-                self.registers[rd as usize] = self.hi;
-            },
-            Function::MFLO => {
-                self.registers[rd as usize] = self.lo;
-            },
-            Function::MTHI => {
-                self.hi = self.registers[rd as usize];
-            },
-            Function::MTLO => {
-                self.hi = self.registers[rd as usize];
-            },
+            Function::MFHI => self.registers[rd as usize] = self.hi,
+            Function::MFLO => self.registers[rd as usize] = self.lo,
+            Function::MTHI => self.hi = self.registers[rd as usize],
+            Function::MTLO => self.hi = self.registers[rd as usize],
             Function::SYSCALL => {
                 let code = ((rs as u32) << 10) | ((rt as u32) << 15) | (shift_amount as u32);
                 return match code {
